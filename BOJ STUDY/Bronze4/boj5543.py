@@ -1,0 +1,15 @@
+a = int(input())
+b = int(input())
+c = int(input())
+d = int(input())
+e = int(input())
+lb=[]
+ld=[]
+lb.append(a)
+lb.append(b)
+lb.append(c)
+ld.append(d)
+ld.append(e)
+f=min(lb)
+g=min(ld)
+print(f+g-50)

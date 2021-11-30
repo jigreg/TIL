@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+<script>
+var data1 = prompt("숫자1 입력하세요");
+var op = prompt("연산자 입력하세요");
+var data2 = prompt("숫자2 입력하세요");
+
+document.write( (typeof data1) + "<br>");
+
+if( !isNaN(data1) ){
+	document.write("숫자입니다<br>");
+}
+else{
+	document.write("숫자가 아닙니다<br>");
+}
+
+
+// 모든 정수는 1로 나누어진다 = ? % 1 == 0
+if( data1 % 1 == 0 ){
+	document.write("정수입니다<br>");
+}
+else{
+	document.write("정수가 아닙니다<br>");
+}
+
+data1 = parseInt(data1);// string, 실수 --> 정수
+data2 = parseInt(data2);
+document.write( (typeof data1) + "<br>");
+
+
+if(op == "+"){
+	document.write(data1 + data2 + "<br>");//NaN(Not a number)
+}
+else if(op == "-"){
+	document.write(data1 - data2 + "<br>");
+}else if(op == "*"){
+	document.write(data1 * data2 + "<br>");
+}else if(op == "/"){
+	document.write(data1 / data2 + "<br>");
+}else{
+	var userinput = confirm("잘못된 연산입니다"); 
+	if(userinput){
+		document.write(data1 + data2 + "<br>");
+	}
+	else{
+		document.write("다시 연산 내용을 입력하세요<br>");
+	}
+}
+</script>
+</head>
+<body>
+
+</body>
+</html>

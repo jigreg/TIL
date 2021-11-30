@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+<style>
+.cls1 {
+color:red; 
+background-color:yellow;
+}
+</style>
+<script src="jquery-3.2.1.min.js"></script>
+<script>
+$(document).ready(function() {
+	$('img').attr("src","/Htmltest/images/iphone.png");
+	$('img').attr("width",100);
+	$('img').attr("height",300);
+	var src=$("img").attr("src");//getter
+	var width=$("img").attr("width");//getter
+	var height=$("img").attr("height");//getter
+	$("#result").html("이미지 파일명=" + src + "가로크기 = " + width + "세로크기 = " + height);
+	$('img').removeAttr('src');
+	
+	//$('#contents').html("<input type=password><br>");
+	//var contents = $("#contents").html();
+	//alert(contents);
+	
+	//$("#contents").css("border", "1px solid red");
+	//$("#contents").empty();
+	//$("#contents").remove();
+	
+	$("h1:last, div:last").addClass("cls1");
+	$("h3").removeClass("cls1");
+	
+	//alert($("div input:text").val()); // input 타입의 value값 반환 getter
+	//alert($("h1:last").html()); //text
+	
+	$("h1:first").hide();
+	//$("h1:first").show(2000);
+	$("h1:first").fadeIn(2000);
+	$("h1:first").fadeOut(2000);
+	$("h1:first").slideDown(2000);
+	$("h1:first").slideUp(2000);
+});
+
+</script>
+</head>
+<body>
+<h1>이미지를 보여드립니다.</h1>
+<img src="/Htmltest/images/android.jpg">
+<div id="result"></div>
+
+<div id="contents">
+	<input type=text value="기본값"><br>
+</div>
+<h1 >클래스 속성을 공부합니다. </h1>
+<div>클래스 속성을 공부합니다. </div>
+<h3 class="cls1"> 클래스 속성을 공부합니다.</h3>
+</body>
+</html>

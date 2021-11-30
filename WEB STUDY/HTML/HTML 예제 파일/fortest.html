@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+<script>
+ var a1 = [1, 3.14, true, "javascript", [1,2,3] , undefined, null];
+ a1[a1.length-1] = "수정";
+ a1[5] = "수정2";
+ a1[4][0] = 10;
+ a1[10] = "10번인덱스";// 추가 
+ document.write("배열 데이터 갯수=" + a1.length + "<br>");
+ for(var i = 0; i < a1.length; i++){
+	 if(a1[i] == undefined) {continue;}
+	 if( a1[i].constructor == Array ){
+	  alert(a1[i].join("/"))
+
+	 }
+	 document.write("<h3>" + a1[i] + "</h3>");
+ }
+ 
+ 
+ document.write("<h3>반복문없이 배열조회= " + a1.join(',') + "</h3>");
+</script>
+</body>
+</html>
+
+<!-- switch-case - 자바 스크립트 존재.
+     while, do-while - 자바 스크립트 존재.
+     break, continue - 자바 스크립트 존재.
+ -->

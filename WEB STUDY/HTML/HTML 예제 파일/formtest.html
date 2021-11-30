@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>제목입니다</title>
+</head>
+<body>
+<h1> 여러가지 입력 양식</h1>
+<form action="login.jsp">
+아이디 입력: <input type="text" name="loginid"><br>
+암호 입력: <input type="password" name="pw"><br>
+<input type="hidden" name="role" value="admin">
+
+<input type="checkbox" name="title" value="사원"> 사원
+<input type="checkbox" name="title" value="학생"> 학생
+<input type="checkbox" name="title" value="사장"> 사장
+
+<input type="radio" name="dept" value="10"> 교육부
+<input type="radio" name="dept" value="20"> 인사부 
+<input type="radio" name="detp" value="30"> it부
+
+<input type=file name="filename">
+<select>
+<option></option></select>
+<input type=submit value="로그인">
+</form>
+</body>
+</html>

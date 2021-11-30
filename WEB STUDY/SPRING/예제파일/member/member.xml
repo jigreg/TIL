@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+<bean id="dao" class="member.MemberDAO">
+	<property name="membervo" ref="vo2"/>
+</bean>
+
+<bean id="vo" class="member.MemberVO">
+	<property name="memberid" value="spring"/>
+	<property name="password" value="1111"/>
+</bean>
+
+<bean id="vo2" class="member.MemberVO">
+	<constructor-arg value="servlet"/>
+	<constructor-arg value="2222"/>
+</bean>
+
+
+</beans>

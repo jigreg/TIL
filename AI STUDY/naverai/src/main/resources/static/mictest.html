@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>마이크 테스트</title>
+</head>
+<body>
+   <button id="record">녹음</button>
+    <button id="stop">정지</button>
+    <div id="sound-clips"></div>
+    <script src="jquery-3.2.1.min.js"></script>
+    <script>
+    	//dom객체
+        const record = document.getElementById("record")
+        const stop = document.getElementById("stop")
+        const soundClips = document.getElementById("sound-clips")
+
+        if (navigator.mediaDevices) {
+            console.log('getUserMedia supported.')
+            const constraints = { audio: true  }
+        
+       let chunks = []
+       navigator.mediaDevices.getUserMedia(constraints)//녹음기 사용 준비되면
+           .then(function(stream) {
+               const mediaRecorder = new MediaRecorder(stream)//녹음기객체 
+               record.onclick = function() {//녹음 버튼 클릭시에
+                   mediaRecorder.start()// 음성 녹음 시작하라
+                   console.log(mediaRecorder.state)
+                   console.log("recorder started")
+                   record.style.background = "red"
+                   record.style.color = "black"
+               }//record.onclick
+               
+               stop.onclick = function() {//정지 버튼 클릭시에
+                   mediaRecorder.stop()//녹음 정지시켜라
+                   console.log(mediaRecorder.state)
+                   console.log("recorder stopped")
+                   record.style.background = ""
+                   record.style.color = ""
+               }//stop.onclick
+             
+             //녹음 시작시킨 상태가 되면 chunks에 녹음 데이터를 저장하라 
+             mediaRecorder.ondataavailable = function(e) {
+               chunks.push(e.data)
+             }  
+			//녹음 정지시킨 상태가 되면 실행하라
+            mediaRecorder.onstop = function(e) {
+              console.log("data available after MediaRecorder.stop() called.")
+	
+			//1. audio 태그 재생한다-녹음내용 확인한다
+			var audio = document.createElement('audio');//<audio src="MP3ㅕURL" CONTROLS > 
+			audio.setAttribute("controls", '');
+			audio.controls = true;
+			soundClips.appendChild(audio);//<div태그 내부 <audio 태그 추가한다
+
+			//2 chunks 배열에 녹음 데이터 있다-- blob 데이터 음성 가져온다
+			const blob = new Blob(chunks, {'type' : "audio/mp3"});
+			//3. url 만든다
+			var mp3URL = URL.createObjectURL(blob);
+			audio.src = mp3URL;
+			//4. 다음 녹음 위해 chunks 비워둔다
+			chunks = []
+			
+			//5. 파일 저장한다
+			var a = document.createElement('a');//<audio src="MP3ㅕURL" CONTROLS > 
+			soundClips.appendChild(a);//<div태그 내부 <audio 태그 추가한다 다음에 <a 태그 추가한다			
+			
+			a.href=mp3URL;
+			a.innerHTML = "MP3파일로저장";
+			
+			var now = new Date();
+			var year = now.getFullYear();// 2011
+			var month = ('0' + (now.getMonth() + 1)  ).slice(-2) ; //10
+			var day = ('0' + now.getDate()).slice(-2) ;  // 오른쪽부터 2자리 
+			var h = ('0' + now.getHours()).slice(-2) ;  // 오른쪽부터 2자리 
+			var m = ('0' + now.getMinutes()).slice(-2) ;  // 오른쪽부터 2자리 
+			var s = ('0' + now.getSeconds()).slice(-2) ;  // 오른쪽부터 2자리 
+			var dateString = year+""+month+""+day+""+h+""+m+""+s; //20111001시분초
+			console.log(dateString);
+			//웹클라이언트 - terneclipse 설치설정
+			a.download = "mictest" + dateString + ".mp3";//브라우저가 정한 폴더로 저장
+			
+			//6. 스프링 서버로 ajax 업로드-    
+			/*script src="jquery-3.2.1.min.js".... 추가 필요*/
+			
+			var formData = new FormData();
+			formData.append
+			("file1", blob, "mictest" + dateString + ".mp3");
+			$.ajax({
+				url:'/ajaxfileupload',
+				type:'post',
+				data:formData,
+				processData:false,
+				contentType:false,
+				success:function(response){
+					soundClips.append(response);
+				}
+			});//ajax end
+			
+/*1. ajax로 multipart 방식으로 보낼 때, processData는 일반적으로 서버에 전달되는 data는 query String 형태로 전달되어 집니다.
+data 파라미터로 전달된 데이터는 jQuery 내부적으로 쿼리스트링으로 만들어 보내는데, 파일전송에는 이를 피해야함으로 false로 설정해줍니다.
+2. contentType은 default 값이 "application/x-www-form = urlencoded; charset = UTF-8" 이므로, 보내줄 때
+			multipart/form-data로 전송해야 하기 때문에 false로 설정해줍니다.
+*/			
+            }//mediaRecorder.onstop
+               
+           })//then 
+           .catch(function(err) {
+               console.log('The following error occurred: ' + err)
+           })
+ 	}//17번 if  end
+	</script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+<style type="text/css">
+body{
+background-color: aqua;}
+h1 {
+border: solid 5px blue;
+border-radius: 20px;
+padding : 20px;
+margin : 20px;
+width : auto;
+height : auto;
+color : green;
+text-shadow: 5px 5px 10px green;
+text-align: center;
+font-family:sans-serif;
+font-size:3em;
+box-shadow: -5px -5px 5px red;
+}
+table {
+table-layout: auto;
+align-content: center;
+}
+footer{
+text-align: center;}
+
+</style>
+</head>
+<body>
+<h1> boardlist를 출력합니다. </h1>
+<div>
+<form action="boardsearch.html">
+	<select multiple="multiple">
+		<option>제목</option>
+		<option>내용</option>
+		<option>작성자</option>
+</select>
+
+검색어 : <input type="text">
+<input type="button" value="검색"> 
+
+
+</form>
+</div>
+<table border="1" bordercolor="pink" align = "center" >
+<tr bgcolor="gray" align="center"><td>번호</td><td>제목</td><td>작성자</td><td>조회수</td>
+<tr align="center"><td>1</td><td><a href="boarddetail.html" style="text-decoration:none"> 제목1 </a></td><td>작성자1</td><td>0</td>
+<tr align="center"><td>2</td><td><a href="boarddetail.html"style="text-decoration:none"> 제목2 </a></td><td>작성자2</td><td>0</td>
+<tr align="center"><td>3</td><td><a href="boarddetail.html"style="text-decoration:none"> 제목3 </a></td><td>작성자3</td><td>11</td>
+<tr align="center"><td>4</td><td><a href="boarddetail.html"style="text-decoration:none"> 제목4 </a></td><td>작성자4</td><td>22</td>
+<tr align="center"><td>5</td><td><a href="boarddetail.html"style="text-decoration:none"> 제목5 </a></td><td>작성자5</td><td>11</td>
+</table>
+
+<h2 style="text-align: center">페이지 번호</h2>
+
+<footer>
+<a href="boardlist1.html"> 1&nbsp;&nbsp; </a>
+<a href="boardlist2.html"> 2&nbsp;&nbsp; </a>
+<a href="boardlist3.html"> 3&nbsp;&nbsp; </a>
+<a href="boardlist4.html"> 4&nbsp;&nbsp; </a>
+<a href="boardlist5.html"> 5&nbsp;&nbsp; </a>
+</footer>
+<a href="boardwrite.html">글쓰기</a>
+</body>
+</html>

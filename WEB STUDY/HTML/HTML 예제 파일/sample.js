@@ -1,0 +1,1 @@
+alert("sample.js  실행내용입니다")

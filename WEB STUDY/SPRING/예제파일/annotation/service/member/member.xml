@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd">
+
+<context:component-scan base-package="annotation.service.member"/>
+<!-- <bean id="service" class="annotation.service.member.MemberServiceImpl" >
+	<property name="memberDAO" ref="dao"/> 
+	setter 메소드 이름 앞에 대문자 소문자 뒤에 메소드 괄호 지우기
+</bean>
+ -->
+<!-- <bean id="dao" class="annotation.service.member.MemberDAO">
+	<property name="membervo" ref="vo"/>
+</bean> -->
+
+<bean id="vo" class="annotation.service.member.MemberVO">
+	<property name="memberid" value="spring"/>
+	<property name="password" value="1111"/>
+</bean>
+
+
+<bean id="vo2" class="annotation.service.member.MemberVO">
+	<constructor-arg value="servlet"/>
+	<constructor-arg value="2222"/>
+</bean>
+
+
+</beans>

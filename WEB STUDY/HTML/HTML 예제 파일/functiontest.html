@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+<script>
+function f1(){
+	alert("f1호출");
+}
+
+/*f1();
+f1();
+f1();*/
+
+function f2(i){
+	alert("f2호출="+ i);
+}
+/*
+f2(100);
+f2(200);
+f2(300);
+f2("js테스트");
+f2(3.14);*/
+
+function f3(){
+	alert("f3호출");//1
+	return 100;
+}
+
+/*var r3 = f3();
+document.write(r3 + "<br>");//2
+document.write(r3*r3 + "<br>");//3
+*/
+
+function f4(i, j){
+	alert("f4호출");//1
+	return i*j;
+}
+/*
+var r4 = f4(5, 8);
+document.write(r4 + "<br>");//2
+
+var r4 = f4(7, 9, 10);
+document.write(r4 + "<br>");//2
+
+var r4 = f4(7);
+document.write(r4 + "<br>");//2
+*/
+var r4 = f4("오", "팔");
+document.write(r4 + "<br>");//2
+
+
+
+</script>
+</body>
+</html>

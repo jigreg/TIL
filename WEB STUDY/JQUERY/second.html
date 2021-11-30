@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+<script src="jquery-3.2.1.min.js"></script>
+<script>
+$(document).ready(function() {
+	//h1 태그 선택(반복문 필요 x) 글씨 색상 변경 함수
+	//$('h1').css("color","blue");
+	//id second 태그 글씨 색상 변경
+	//$("#second").css("color", "blue");
+	//class red 태그 배경색상 빨강
+	//$(".red").css("backgroundColor", "#ff0000");
+	//h1 태그의 포함 a 태그의 밑줄 없애자 부등호는 포함관계
+	//$('h1>a').css('text-decoration','none');
+	//h1 태그와 td 태그르 배경색 노랑 둘다 포함은 ,
+	//$("h1,td").css("backgroundColor","yellow");
+	//class red 인 h1 태그 배경색 노랑
+	//$("h1.red").css("backgroundColor", "yellow");
+	
+	//text input 태그 배경색 노랑  css 문법 가능 *포함, $끝나는거  ,^시작하는거
+	//$("input:password").css("backgroundColor", "yellow");
+	//input type button,button 태그 배경 노란색
+	//$("input:button, button").css("background-color","yellow");
+	
+	//th 태그의 배경 pink
+	//$("th").css("backgroundColor","pink");
+	//첫번쨰 tr 태그
+	//$("tr:first").css("backgroundColor","orange");
+	//마지막 tr 태그
+	//$("tr:last").css("backgroundColor","orange");
+	
+	//홀수번쨰 tr 태그 (순서 시작은 0부터) even
+	//$("tr:even").css("backgroundColor","orange");
+	//짝수번쨰 tr 태그 odd
+	//$("tr:odd").css("backgroundColor","orange");
+	
+	//4번째 tr 부터 나머지 모든 tr greater than
+	//$("tr:gt(2)").css("backgroundColor","aqua");
+	//3번째 tr 부터 나머지 모든 tr
+	//$("tr:gt(2), tr:eq(2)").css("backgroundColor","aqua");
+	//2번째 tr 보다 작은 나머지모든 tr less than
+	//$("tr:lt(2)").css("backgroundColor","aqua");
+	//tr 태그 중에 index 번호가 3의 배수일때 (0,3,6...)  -> nth-child(&n)
+	//$("tr:nth-child(3n)").css("backgroundColor","aqua");
+	
+	var h1 = $("h1");
+	//alert(h1.length);
+	for(var i = 0;i <h1.length; i++){
+		var col = (i+1)*50;
+		h1[i].css("color", "rgb( " + col + ", " +col +", " +col ");
+	}
+	alert($("h1").css("color")); //black,#000000 ,rgb(0,0,0)
+});
+</script>
+</head>
+<body>
+<h1 class="red"> 제목1 </h1>
+<h1 id="second"> 제목2</h1>
+<h1> <a href="a.html"> 링크1 </a></h1>
+<a class="red" href="b.html"> 링크2 </a><br>
+<input type=text value="기본문자열"><br> 
+<input type=password value="기본암호"><br>
+<input type=tel value="기본"><br>
+<input type=url value="http://"><br>
+<input type=email value="a@b.com"><br>
+<input type=button value="버튼"><br>
+<button>버튼2</button>
+<table>
+<tr><th>번호</th><th>제목</th><th>내용</th><th>작성자</th></tr>
+<tr><td>1</td><td>제목1</td><td>내용1</td><td>작성자1</td></tr>
+<tr><td>2</td><td>제목1</td><td>내용1</td><td>작성자1</td></tr>
+<tr><td>3</td><td>제목1</td><td>내용1</td><td>작성자1</td></tr>
+<tr><td>4</td><td>제목1</td><td>내용1</td><td>작성자1</td></tr>
+<tr><td>5</td><td>제목1</td><td>내용1</td><td>작성자1</td></tr>
+<tr><td>6</td><td>제목1</td><td>내용1</td><td>작성자1</td></tr>
+<tr><td>7</td><td>제목1</td><td>내용1</td><td>작성자1</td></tr>
+</table>
+</body>
+
+</html>

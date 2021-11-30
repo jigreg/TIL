@@ -1,0 +1,63 @@
+
+CONN hr/hr;
+hr.pdf 파일
+
+
+1. 이름이 'adam' 인 직원의 급여와 입사일을 조회하시오.
+select salary, hire_date from employees where first_name = initcap('adam');
+				where lower(first_name) = 'adam';
+				where upper(fist_name) = upper('adam');
+
+2. 나라 명이 'united states of america' 인 나라의 국가 코드를 조회하시오.
+desc countries;
+select country_id from countries where lower(country_name) = 'united states of america';
+
+3. 'Adam의 입사일은 05/11/2 이고, 급여는 7,000\ 입니다.' 의 형식으로 직원
+정보를 조회하시오.
+select first_name || '의 입사일은 ' || to_char(hire_date,'yy/mm/fmdd') || ' 이고, 급여는 ' || to_char(salary,'999,999L') || '입니다.'
+	as "직원정보"
+	from employees;
+
+직원정보
+
+Adam의 입사일은 05/11/2 이고, 급여는 7,000 입니다. 
+......
+
+4. 이름이 5글자 이하인 직원들의 이름, 급여, 입사일을 조회하시오.
+select first_name, salary, hire_date from employees
+where length(first_name) < = 5;
+5. 06년도에 입사한 직원의 이름, 입사일을 조회하시오.
+select first_name, hire_date from employees
+where hire_date like '06%';
+
+6. 15년 이상 장기 근속한 직원들의 이름, 입사일, 급여, 근무년차를 조회하시오.
+
+select first_name, hire_date, salary ,trunc((sysdate - hire_date) / 365 ,0) 근무년차
+from employees
+where (sysdate - hire_date) / 365 >=15;
+
+7. employees 테이블에서 
+직종이(job_id) 'st_clerk'인 사원 중에서 급여가 1500 이상인 사원의
+first_name, job_id, salary 를 조회하시오. 단 이름은 모두 대문자로 출력하시오.
+
+select upper(first_name), job_id, salary
+from employees
+where lower(job_id) = 'st_clerk' and salary >= 1500;
+
+8. 급여가 20000 이상인 직종(job_id)의
+job_id, salary 조회하시오.
+단, salary는 10자리로 출력하되 공백은 '0'으로 표시하시오.
+
+select job_id, lpad(min_salary,10,'0') 최소급여
+from jobs
+where min_salary > = 15000;
+
+select job_id, to_char(min_salary,'0000000000') 최소급여
+from jobs
+where min_salary > = 15000;
+
+9. 직원의 이름, 급여, 직원의 관리자 이름을 조회하시오. 단, 관리자가 없는 직원은
+   '<관리자 없음>'이 출력되도록 합니다.
+
+select first_name, salary, nvl(to_char(manager_id) ,'<관리자 없음>') 상사사번
+from employees;

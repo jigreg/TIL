@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+<script src="jquery-3.2.1.min.js"></script>
+<script>
+$(document).ready(function() {
+	var cnt = 1;
+	$("#btnclick").on('click', function(){
+		//alert("1번 클릭했습니다.");
+		var value = "추가클릭 버튼" + cnt
+		$('body').append('<input type=button value ="' + value + '" id="btnaddclick">');
+		//$('input:last').after('<input type=button value ="추가 클릭 버튼" id="btnaddclick">');		
+		cnt ++;	
+	}); //on end
+	$('#btnstop').on('click',function(){
+		$("#btnclick").off('click');
+		
+		
+	});//one end
+	
+	$('#btnnotice').one('click',function() {
+		alert('공지사항은 1번만 보여드립니다.');
+	});//one end
+	
+	$('body').on('click',"#btnaddclick" ,function() {
+		alert(this.value +":" + $(this).val() + "동적 생성 버튼을 클릭"); //$(this).val()
+	});
+	
+	
+});//reday end
+</script>
+</head>
+<body>
+<input type=button value="클릭버튼" id ="btnclick">
+<input type=button value="중단버튼" id ="btnstop">
+<input type=button value="공지사항" id ="btnnotice">
+
+</body>
+</html>
