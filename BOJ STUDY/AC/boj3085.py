@@ -7,15 +7,16 @@ def search():
         cnt = 1
         for j in range(1,N):
             if candies[i][j-1] == candies[i][j]:
-                cnt +=1
+                cnt += 1
                 ans = max(ans,cnt)
             else : 
                 cnt = 1
+
     for i in range(N):
         cnt = 1
         for j in range(1,N):
             if candies[i-1][j] == candies[i][j]:
-                cnt +=1
+                cnt += 1
                 ans = max(ans,cnt)
             else : 
                 cnt = 1
@@ -23,7 +24,7 @@ def search():
 
 for i in range(N):
     for j in range(N):
-        if j+1 < N:
+        if j + 1 < N:
             candies[i][j], candies[i][j+1] = candies[i][j+1] , candies[i][j]
             search()
             candies[i][j], candies[i][j+1] = candies[i][j], candies[i][j+1]
@@ -31,4 +32,5 @@ for i in range(N):
             candies[i][j], candies[i+1][j] = candies[i+1][j] , candies[i][j]
             search()
             candies[i][j], candies[i+1][j] = candies[i][j], candies[i+1][j]
+
 print(ans)
