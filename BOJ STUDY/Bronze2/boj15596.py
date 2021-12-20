@@ -1,5 +1,4 @@
-n = list(map(int,input().split()))
-
-def sum():
-    a = sum(n)
-    return a
+def solve(a):
+    ans = 0
+    ans = sum(a)
+    return ans
