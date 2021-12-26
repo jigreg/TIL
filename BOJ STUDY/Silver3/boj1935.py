@@ -17,4 +17,4 @@ for ch in S :
         else : 
             Stack.append(a/b)
 
-print(Stack.pop())
+print('{:.2f}'.format(Stack.pop()))
