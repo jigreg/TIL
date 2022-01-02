@@ -27,3 +27,4 @@ def bfs():
                 dq.append((ny,nx,nd))
 
 print(bfs())
+
