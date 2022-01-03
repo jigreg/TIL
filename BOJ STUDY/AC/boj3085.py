@@ -34,3 +34,5 @@ for i in range(N):
             candies[i][j], candies[i+1][j] = candies[i][j], candies[i+1][j]
 
 print(ans)
+
+
