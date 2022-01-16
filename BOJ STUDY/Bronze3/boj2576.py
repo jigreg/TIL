@@ -8,3 +8,5 @@ if len(N) == 0 :
 else :
     print(sum(N))
     print(min(N))
+
+    
