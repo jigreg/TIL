@@ -30,3 +30,7 @@ for i in range(N):
         dfs(i)
 
 print(ans)
+
+
+
+
