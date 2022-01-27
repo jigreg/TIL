@@ -14,3 +14,5 @@ for _ in range(N):
     if stack:
         isVPS = False
     print('YES' if isVPS else 'NO')
+
+    
