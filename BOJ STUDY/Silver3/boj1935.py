@@ -18,3 +18,4 @@ for ch in S :
             Stack.append(a/b)
 
 print('{:.2f}'.format(Stack.pop()))
+
