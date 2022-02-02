@@ -22,5 +22,5 @@ for i in date1:
 
 print("10대",A10,"20대", A20,"30대",A30)
 print('10대 = {:.2f} 20대 = {:.2f} 30대 ={:.2f}'.format(A10/sum*100,A20/sum*100,A30/sum*100))
-
+print()
 # 장고로 개발하기
