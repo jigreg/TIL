@@ -26,4 +26,7 @@ def bfs():
                 chk[ny][nx] = True
                 dq.append((ny,nx,nd))
 
+
+
+
 print(bfs())
