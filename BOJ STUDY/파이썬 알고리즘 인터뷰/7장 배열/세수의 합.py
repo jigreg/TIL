@@ -1,4 +1,6 @@
 # 브루트 포스
+
+
 nums = [[-1,0,1],[-1,-1,2]]
 def threeSum(self,nums):
     results = []
