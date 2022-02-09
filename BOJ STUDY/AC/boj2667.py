@@ -33,6 +33,8 @@ for i in range(n):
             bfs(i,j,idx)
             idx+=1						
 apt_list=sorted(apt_list.values())
+
 print(len(apt_list))
+
 for i in apt_list:
     print(i)
