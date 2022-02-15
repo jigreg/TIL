@@ -15,4 +15,6 @@ for _ in range(N):
         isVPS = False
     print('YES' if isVPS else 'NO')
 
+
+
     
