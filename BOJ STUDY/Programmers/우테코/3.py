@@ -1,3 +1,4 @@
+#우테코 3번
 import collections
 def solution(ings, menu, sell):
     answer = 0
