@@ -23,7 +23,9 @@ for i in range(len(cnbc)-3):
         sungcash += sung*cnbc[i+3]
         sung = 0
 
+
 timing = sungcash + sung*cnbc[-1]
+
 
 if timing < bnp:
     print('BNP')
