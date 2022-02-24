@@ -12,3 +12,7 @@ for i in num_list:
 num_list.sort()
 
 temp = list(map(int,i))
+
+
+
+
