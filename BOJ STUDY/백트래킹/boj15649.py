@@ -25,3 +25,4 @@ def check(x):
                 arr[x] =0
                 visit[i] = 0
 check(1)
+
