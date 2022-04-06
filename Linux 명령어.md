@@ -7,13 +7,14 @@
 
 --- CentOS7 경량 데스크톱(X-Windows) 설치
 1. 센토스 7 커널 업데이트
+```
 # yum -y install yum-plugin-fastestmirror
 # yum install epel-release -y
 # yum update -y
 # yum install kernel-devel kernel-headers -y
 # yum install -y install gcc make linux-headers-$(uname -r) dkms
 # reboot
-
+```
 2. 센토스 7 xfce 데스크톱 설치
 # yum groupinstall "X Window System" Xfce -y
 # systemctl set-default graphical.target
@@ -544,3 +545,8 @@ v: tar 명령어 수행 과정 출력
 # zip test.zip dirB/*
 # rm -rf dirB
 # unzip test.zip
+
+chmod 744
+r(4) : read
+w(2) : write
+x(1) : execute
