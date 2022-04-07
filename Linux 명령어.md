@@ -210,8 +210,8 @@ wc -> 글자수 파악
 # cp -i fileA fileAA
 
 - 디렉토리 복사
-# cp dirC dirCC
-# cp -r dirC dirCC
+# cp dirC dirCC (X)
+# cp -r dirC dirCC (o)
 # ls -F dirC
 # ls -F dirCC
 
@@ -238,8 +238,8 @@ wc -> 글자수 파악
 - 디렉토리 생성
 # mkdir dirX
 # ls -ld dirX
-# mkdir dirY/dirZ
-# mkdir -p dirY/dirZ
+# mkdir dirY/dirZ (x) 상위폴더가 없는 경우
+# mkdir -p dirY/dirZ -p를 줘야 없는 폴더 생성 후 만듬
 # ls -F
 # ls -F dirY
 # mkdir dirU dirV
@@ -266,7 +266,8 @@ wc -> 글자수 파악
 # rm -r dirC
 
 10. 링크
-- 하드 링크
+- 하드 링크(디스크 공유)
+inode(index)
 # ls -il /bin/cd
 # ls -il /usr/bin/cd
 # ls -il fileA
@@ -276,8 +277,9 @@ wc -> 글자수 파악
 # cat hardA
 # echo hello > hardA
 # cat fileA
+# echo world >> hardA
 
-- 심볼릭 링크
+- 심볼릭 링크(바로가기)
 # ln -s fileA symbolA
 # ls -il fileA symbolA
 # echo aloha > fileA
@@ -292,18 +294,18 @@ wc -> 글자수 파악
 11. 파일 내용 검색
 - grep 명령어
 # grep 'root' /etc/passwd
-# grep -n 'root' /etc/passwd
-# grep -v 'root' /etc/passwd
-# grep -l 'root' /etc/*
-# grep -c 'root' /etc/passwd
+# grep -n 'root' /etc/passwd (즐번호 달기)
+# grep -v 'root' /etc/passwd (root만 제외하고 보여주기)
+# grep -l 'root' /etc/* (root가 있는 파이령 보여주기)
+# grep -c 'root' /etc/passwd (root가 있는 줄 갯수 보여주기)
 # grep 'root' /etc/passwd
 # useradd  johnlee
 # useradd  john
 # grep 'john' /etc/passwd
 # grep -w  'john' /etc/passwd
-# grep '^john' /etc/passwd
+# grep '^kosa' /etc/passwd (kosa로 시작되는 패턴만 보여주기)
 # grep 'j..n' /etc/passwd
-# grep 'login$' /etc/passwd
+# grep 'login$' /etc/passwd (loogin 단어가 그 줄에 끝에 들어가는 것 보여주기)
 
 - egrep 명령어
 # egrep 'N(o|e)+' /etc/passwd
@@ -316,7 +318,7 @@ wc -> 글자수 파악
 # find / -name hosts -type d
 # find / -name fileA -type f -exec rm {} \;
 # find / -name fileC -type f -ok rm {} \;
-# find ~ -mtime -2
+# find ~ -mtime -2 -ls | more (최근 이틀동안 수정시간이 변경된 파일만 찾아준다)
 # find /usr/bin -size +3000000c -ls
 
 13. vi 편집기 기초
@@ -362,6 +364,7 @@ $ vi test.txt
 $ chmod g-rw test.txt
 $ chmod o-rw test.txt
 $ ls -n
+$ chmod 400 keypair.pem
 
 15. 쉘 명령어
 - 경로 이름
@@ -424,6 +427,7 @@ $ more /tmp/test
 $ ls -l /etc | wc -l
 $ ps -ef | more
 $ ps -ef | grep bash
+# cat /etc/ssh/sshd_config | grep -n "22"
 
 16. history 명령어
 # history
