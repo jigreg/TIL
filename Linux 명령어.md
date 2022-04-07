@@ -176,6 +176,8 @@ Hello, Linux
 # pwd
 # cd ~/dirA
 # pwd
+루트 사용자 홈디렉토리 /root
+john 사용자 홈디렉토리 /home/john
 
 # pwd
 # cd /root/dirA
@@ -195,6 +197,7 @@ Hello, Linux
 # tail -3 numbers
 # wc /etc/ssh/sshd_config
 # wc -l /etc/ssh/sshd_config
+wc -> 글자수 파악
 
 5. 복사
 - 파일 복사
