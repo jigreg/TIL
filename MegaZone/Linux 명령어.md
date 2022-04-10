@@ -616,7 +616,7 @@ v: tar 명령어 수행 과정 출력
 # rm -rf dirB
 # unzip test.zip
 ```
-chmod 744
+- chmod 
 r(4) : read
 w(2) : write
 x(1) : execute
