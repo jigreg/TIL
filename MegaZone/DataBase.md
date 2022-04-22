@@ -2,12 +2,10 @@
 
 1. 데이터베이스 생성
 - shopDB 생성
-
 localhost > 새로 생성 > 테이터베이스 > shopDB 입력 확인
 
 2. 테이블 생성
 - memberTBL 생성
-
 shopDB > 새로 생성 > 테이블 > memberTBL
 
 열 이름(한글)          영문이름        데이터 형식    길이         NULL 허용
