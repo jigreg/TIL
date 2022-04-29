@@ -15,6 +15,7 @@
 - NET :
 - IMG : Centos, Ubuntu
 
+
 # VM Window Spec
 - CPU : 1
 - RAM : 2G
