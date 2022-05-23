@@ -1,26 +1,64 @@
-# Open STack
+# Open Stack
+---
+
 ## 5 core service
 1) Compute Service(CPU,RAM) : Nova, AWS(EC2) - Elastic Compute Cloud
-2) Storage Service(SSD, HDD) : Cinder, AWS(EBS) - Elastic Block Storage
-                               Swift, AWS(S3) - Simple Storage Service
-3) Network Service (G/W, S/W) : Neutron, AWS(VPC) - Virtual Private Cloud
+2) Storage Service(SSD, GoogleDrive, NFS, NAS) : Cinder, Block Storage, AWS(EBS) - Elastic Block Store
+                                                 Swift, Object Storage, AWS(S3) - Simple Storage Service
+                                                 Manila, File Storage, AWS(EFS) - Elastic File System
+3) Network Service (IP, Subnet) : Neutron, AWS(VPC) - Virtual Private Cloud
 4) Image Service(OS) : Glance, AWS(AMI) - Amazon Machine Image
-5) Identitiy Service(AUTH, Keypair) - KeyStone, AWS(IAM) - Identity Access Management
+5) Identitiy Service(User(ID/PW), Group, Role) - KeyStone, AWS(IAM) - Identity Access Management
 6) Orchestration Service(IaC) - Heat, AWS(CloudFormation)
 
+## VM Setting
+- SSD : 128GB
+- CPU : 4C (Virtualize Intel VT-x/EPT or AMD-v/RVI)
+- RAM : 12GB (12,288MB)
+- OS : CentOS8 - Stream
+- Net : Bridged
+- Sec : 
+- SWAP : 12GB
+- 파티션 Setting : /home 삭제 후 swap 메모리에 추가 할당 (12GB)
+
+### Openstack VM 최소사양 & 권장사양
+- CPU : 4C(시스템 8C)        24C (Baremetal)
+- RAM : 8GB(시스템 16GB)     24GB (Baremetal)
+
 ## Open Stack Setting
-- IP : 192.168.0.53/20
+- IP : 192.168.0.126/20
 - G/W : 192.168.0.1
-- Network : extnet
+- 인증 : 프로젝트 생성, 사용자 생성
+- 관리 - 네트워크 
+  - 네트워크 생성 (External-Network)
+  - 공급자 네트워크 유형 : Flat
+  - 물리적인 네트워크 : extnet
+  - 외부네트워크 ,DHCP 사용 체크 해제
+  - Pools 할당 192.168.11.1,192.168.11,126
+- Compute - Flavor
+  - Flavor 생성
+  - m1.micro, ID : 6, VCPUs : 1, RAM : 1024, Root Disk : 10GB
 - 보안그룹 : 내보냄 = outbound = egress(오픈스택에서 밖으로 내보냄)
             들어옴 = inbound = ingress(밖에서 오픈스택으로 들어옴)
             http,ssh,icmp 들어옴 추가
 - 인스턴스 : 시작 = launch = create , start (poweroff -> start)
 - 인스턴스 생성 - 사용자 정의 스크립트 root 권한으로 실행되므로 sudo를 붙일 필요가 없음
-```
-    #!/bin/bash
-    apt udpate
-    apt install -y nginx
+- 오브젝트 스토리지 - 컨테이너
+  - 컨테이너 이름 부여, 접근 공용
+  - wordpress-4.8.2-ko_KR.zip 업로드
+  - http://192.168.0.126:8080/v1/AUTH_6aa303d06fe9453d86086ddb32940b0e/files/wordpress-4.8.2-ko_KR.zip
+```shell
+#!/bin/bash
+setenforce 0
+sed -i 's/^SELINUX=enforcing$/SELINUX=disabled/' /etc/selinux/config # 치환 명령어
+yum install -y httpd php php-mysql php-gd php-mbstring wget unzip
+cd /home/centos
+wget http://192.168.0.126:8080/v1/AUTH_6aa303d06fe9453d86086ddb32940b0e/files/wordpress-4.8.2-ko_KR.zip
+cd /var/www/html
+unzip /home/centos/wordpress-4.8.2-ko_KR.zip
+mv ./wordpress/* .
+chown -R apache:apache wordpress
+systemctl enable --now httpd
 ```
 - 볼륨 세팅 : 추가 확장 스토리지 
              attach > mount > umount > detach
@@ -39,10 +77,10 @@ BOOTPROTO=none
 NAME=ens160
 DEVICE=ens160
 ONBOOT=yes
-IPADDR=192.168.0.53
+IPADDR=192.168.0.126
 NETMASK=255.255.240.0
 GATEWAY=192.168.0.1
-DNS1=8.8.8.8
+DNS1=192.168.0.66
 DNS2=8.8.4.4
 ```
 ```
@@ -65,8 +103,10 @@ SELINUX=disabled
 # vi /root/answers.txt
 CONFIG_DEFAULT_PASSWORD=Test1234!
 CONFIG_KEYSTONE_ADMIN_PW=Test1234!
-CONFIG_CINDER_VOLUMES_SIZE=100G
-CONFIG_NTP_SERVERS=kr.pool.ntp.org
+CONFIG_CINDER_VOLUMES_SIZE=90G
+CONFIG_NTP_SERVERS=0.kr.pool.ntp.org
+CONFIG_CEILOMETER_INSTALL=n
+CONFIG_AODH_INSTALL=n
 CONFIG_HEAT_INSTALL=y
 CONFIG_NEUTRON_L2_AGENT=openvswitch
 CONFIG_NEUTRON_ML2_TYPE_DRIVERS=vxlan,flat
