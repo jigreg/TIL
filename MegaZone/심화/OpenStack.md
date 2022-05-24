@@ -9,7 +9,9 @@
 3) Network Service (IP, Subnet) : Neutron, AWS(VPC) - Virtual Private Cloud
 4) Image Service(OS) : Glance, AWS(AMI) - Amazon Machine Image
 5) Identitiy Service(User(ID/PW), Group, Role) - KeyStone, AWS(IAM) - Identity Access Management
-6) Orchestration Service(IaC) - Heat, AWS(CloudFormation)
+
+Optional Service 
+6) Orchestration Service(IaC - Infra as a Code) - Heat, AWS(CloudFormation)
 
 ## VM Setting
 - SSD : 128GB
@@ -38,9 +40,11 @@
 - Compute - Flavor
   - Flavor 생성
   - m1.micro, ID : 6, VCPUs : 1, RAM : 1024, Root Disk : 10GB
-- 보안그룹 : 내보냄 = outbound = egress(오픈스택에서 밖으로 내보냄)
-            들어옴 = inbound = ingress(밖에서 오픈스택으로 들어옴)
-            http,ssh,icmp 들어옴 추가
+- 보안그룹 : 내보냄 = outbound = egress(오픈스택에서 밖으로 내보냄) all allow
+             들어옴 = inbound = ingress(밖에서 오픈스택으로 들어옴) all deny(block)
+             http,ssh,icmp 들어옴 추가
+             출발지 = source(src); src ip, src port
+             목적지 = destination(dst); dst ip, dst port (dest)
 - 인스턴스 : 시작 = launch = create , start (poweroff -> start)
 - 인스턴스 생성 - 사용자 정의 스크립트 root 권한으로 실행되므로 sudo를 붙일 필요가 없음
 - 오브젝트 스토리지 - 컨테이너
@@ -152,34 +156,39 @@ resources:
       availability_zone: nova
       key_name: "web-key"
 ```
-## CLI 작업
+## CLI 작업(ad-hoc)
 Project
 ```
 # source keystonerc_admin
 # openstack project create --domain Default --description "cli-project" cli-project
+# openstack project list
 ```
 User
 ```
 # openstack user create --domain Default --project cli-project --password-prompt cli-user
 # openstack role add --project cli-project --user cli-user _member_
+# openstack user list
 ```
 Image
 ```
-# openstack image create "CentOS7" --file CentOS-7-x86_64-GenericCloud-2111.qcow2 \
---disk-format qcow2 --container-format bare --public
+# openstack image create --file CentOS-7-x86_64-GenericCloud-2111.qcow2 --disk-format qcow2 --container-format bare CentOS7 
+# openstack image create --file bionic-server-cloudimg-amd64.img --disk-format qcow2 --container-format bare Ubuntu18 --public
 ```
 Flavor
 ```
-# openstack flavor create --vcpus 1 --ram 1024 --disk 10 m1.micro
+# openstack flavor create --id 6 --vcpus 1 --ram 1024 --disk 10 m1.micro
+# openstack flavor list
+# openstack flavor delete m1.micro //flavor 지우기
 ```
 External Network
 ```
 # openstack network create --project cli-project --provider-network-type flat \
 --provider-physical-network extnet --external External-Network
 # openstack subnet create --network External-Network \
---project cli-project --subnet-range 172.25.0.0/24 \
---allocation-pool start=172.25.0.200,end=172.25.0.250 \
---gateway 172.25.0.2 --no-dhcp External-Subnet
+--project cli-project --subnet-range 192.168.0.0/20 \
+--allocation-pool start=192.168.10.129,end=192.168.10.254 \
+--gateway 192.168.0.1 --no-dhcp External-Subnet
+# openstack subent show External-Subnet //자세히 보기
 ```
 
 Token
@@ -187,9 +196,9 @@ Token
 # vi keystonerc_cli-user
 unset OS_SERVICE_TOKEN
     export OS_USERNAME=cli-user
-    export OS_PASSWORD='open1234'
+    export OS_PASSWORD='Test1234!'
     export OS_REGION_NAME=RegionOne
-    export OS_AUTH_URL=http://172.25.0.129:5000/v3
+    export OS_AUTH_URL=http://192.168.0.126:5000/v3
     export PS1='[\u@\h \W(keystone_cli-user)]\$ '
 
 export OS_PROJECT_NAME=cli-project
@@ -206,8 +215,9 @@ Internal Network
 "create_floatingip:floating_ip_address": "role:admin or project_id:%(project_id)s"
 # projectID=$(openstack project list | grep cli-project | awk '{print $2}')
 # openstack network create --project $projectID --provider-network-type vxlan Internal-Network
-# openstack subnet create --network Internal-Network --subnet-range 10.0.0.0/24 --gateway 10.0.0.1 \
---dhcp --dns-nameserver 8.8.8.8 Internal-Subnet
+# openstack subnet create --network Internal-Network --subnet-range 10.26.0.0/20 --gateway 10.26.0.1 \
+--dhcp --dns-nameserver 192.168.0.66 --dns-nameserver 8.8.8.8 Internal-Subnet
+# openstack subnet delete Internal-subnet
 ```
 
 Router
@@ -222,21 +232,25 @@ Security Group
 # openstack security group rule create --protocol icmp --ingress SG-WEB
 # openstack security group rule create --protocol tcp --dst-port 22:22 SG-WEB
 # openstack security group rule create --protocol tcp --dst-port 80:80 SG-WEB
+# openstack security group create SG-DB
+# openstack security group rule create --protocol icmp --ingress SG-DB
+# openstack security group rule create --protocol tcp --dst-port 22:22 SG-DB
+# openstack security group rule create --protocol tcp --dst-port 3306:3306 SG-DB
 ```
 KeyPair
 ```
-# openstack keypair create --public-key ~/.ssh/id_rsa.pub mz-key
+# openstack keypair create --public-key ~/.ssh/id_rsa.pub cli-key
 ```
 Floating IP
 ```
 # openstack floating ip create External-Network
-# openstack floating ip create --floating-ip-address 172.25.0.222 External-Network
-# openstack server create --flavor m1.micro --image CentOS7 --security-group SG-WEB \
---network Internal-Network --boot-from-volume 10 --key-name mz-key --user-data httpd.file WEB01
+# openstack floating ip create --floating-ip-address 192.168.10.130 External-Network
+# openstack server create --flavor m1.micro --image CentOS7 --security-group SG-WEB --network Internal-Network --boot-from-volume 10 --key-name cli-key --user-data httpd.file WEBSERVER
+# openstack server create --flavor m1.micro --image Ubuntu18 --security-group SG-DB --network Internal-Network --boot-from-volume 10 --key-name cli-key DBSERVER
 # openstack server list
 # openstack floating ip list
-# openstack server add floating ip WEB01 172.25.0.223
-# ssh -i .ssh/id_rsa centos@172.25.0.223
+# openstack server add floating ip WEBSERVER 192.168.10.130
+# ssh -i .ssh/id_rsa centos@192.168.10.130
 ```
 
 Volume
