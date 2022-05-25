@@ -51,6 +51,7 @@ Optional Service
   - 컨테이너 이름 부여, 접근 공용
   - wordpress-4.8.2-ko_KR.zip 업로드
   - http://192.168.0.126:8080/v1/AUTH_6aa303d06fe9453d86086ddb32940b0e/files/wordpress-4.8.2-ko_KR.zip
+- WEBSERVER를 경유지로 하는 것을 Bastion(요새) 호스트 
 ```shell
 #!/bin/bash
 setenforce 0
@@ -240,6 +241,7 @@ Security Group
 KeyPair
 ```
 # openstack keypair create --public-key ~/.ssh/id_rsa.pub cli-key
+# openstack keypair create --private-key my-key.pem my-key
 ```
 Floating IP
 ```
