@@ -56,11 +56,58 @@
     - 파일 시스템 : EFS, 즉 NFS와 같은 디렉토리를 mount 설정
     - 네트워크 인터페이스(NI) : 랜카드 설정, 대부분 보안 장비 세팅 할때 사용
     - 고급 세부 정보 - 사용자 데이터 : #!/bin/bash 와 같은 사용자 데이터 추가 가능
-- 스토리지 추가
-  - EBS 세팅 (프리티어는 30GB까지 사용 가능)
-  - 볼륨 확장을 통해 스토리지 확장 가능 
-  - 스냅샷 : AMI에 선택한 이미지를 의미, `이미지와 스냅샷과의 관계`
-  - 볼륨 유형 
-    - 범용 SSD(gp2)/General Purpose SSD(gp3) : IOPS 성능 차이
-    - 프로비저닝된 IOPS(io1)/ Provisioned IOPS(io2) : 성능 차이/ io2가 SSD에서 제일 빠름
-    - 마그네틱 : 옛날 방식의 HDD
+  - 스토리지 추가
+    - EBS 세팅 (프리티어는 30GB까지 사용 가능)
+    - 볼륨 확장을 통해 스토리지 확장 가능 
+    - 스냅샷 : AMI에 선택한 이미지를 의미, `이미지와 스냅샷과의 관계`
+    - 볼륨 유형 
+      - 범용 SSD(gp2)/General Purpose SSD(gp3) : IOPS 성능 차이
+      - 프로비저닝된 IOPS(io1)/ Provisioned IOPS(io2) : 성능 차이/ io2가 SSD에서 제일 빠름
+      - 마그네틱 : 옛날 방식의 HDD
+  - 태그 추가 : 인스턴스의 태그는 꼭 달기
+    - 키 : Name / 값 : WEB01
+  -  보안 그룹 구성
+     -  이름 : SG-WEB
+     -  소스 : 출발지 포트/ 보안적으로 중요 , 0.0.0.0/0(ipv4 anywhere), ::/0(ipv6 anywhere)
+     -  유형 : SSH, HTTP, ALL ICMP(ipv4)
+  - 키페어 생성 
+  - Amazon Linux 2 사용자 데이터 ec2-user
+  - ubuntu18 사용자 데이터 ubuntu
+
+### ELB(Elastic Load Balancing)
+
+- 가용성을 높임, High Availability(HA) 고 가용성
+- 무중단 서비스
+- Application Load Balancer(ALB)
+  - L7 Switch 유사
+  - Port, Contents 부하 분산 시스템
+- Network Load Balancer(NLB) 
+  - L4 Switch 유사
+  - Port로만 부하 분산 시스템
+- 기본구성
+  - 로드밸런서 이름
+  - 체계 : 접속하는 방식
+    - 인터넷 경계
+  - IP 주소 유형
+    - IPv4  
+- 네트워크 매핑
+  - VPC : 기본 VPC 172.31.0.0/16
+  - 매핑 : ap-northeast-2a, ap-northeast-2c
+- 리스너 및 라우팅
+  - Frontend
+    - TCP
+    - 80
+  - Backend
+    - Target Group (다음으로 전달(Foward))   
+    - 대상 그룹(Target Group) - 인스턴스 - 대상 그룹 이름(TG-NLB)
+    - 상태 검사(Health Check) - Fail 일어날 시 회로 차단(Circuit breaker)
+- NLB 로드 밸런서 알고리즘이 Round Robin이 아님 
+- HTTP 상태 코드 
+- ALB 로드 밸러서 알고리즘은 Round Robin
+- 보안그룹은 특정 IP/특정 보안그룹등 허용 가능
+- 경로기반라우팅 abc.com/food -> web01, abc.com/sale -> web02
+  - 대상그룹 각각 만들어주기
+  - 로드밸런서 ALB 리스너 규칙 보기/편집
+  - 규칙 추가 - `규칙 우선순위 고려!`(L7 스위치 우선순위 까다로움)
+    - if 경로 - 확장 - /food* 
+    - then 전달 대상 - 대상 그룹에서 TG-FOOD 선택
