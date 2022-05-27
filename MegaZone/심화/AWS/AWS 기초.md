@@ -36,6 +36,12 @@
 - 클라우드에서 확장 가능 컴퓨팅 용량을 제공
 - VM = Instance
 - CPU 와 RAM 설정
+- VM에서 Public ip 확인하기
+```bash
+curl http://169.254.169.254/latest/meta-data/public-ipv4
+# meta data 확인하기
+curl http://169.254.169.254/latest/meta-data/security-groups
+```
 - 인스턴스 밑에 스팟요청 - Saving plans - 예약 인스턴스 - 용량 예약 까지 결제 될 수 있음
 - 인스턴스 시작
   - AMI 선택 : Amazon Linux 2 Kernel 5.1(AL2) -> Centos7, Redhat7, Fedora 와 닮음
@@ -61,9 +67,10 @@
     - 볼륨 확장을 통해 스토리지 확장 가능 
     - 스냅샷 : AMI에 선택한 이미지를 의미, `이미지와 스냅샷과의 관계`
     - 볼륨 유형 
-      - 범용 SSD(gp2)/General Purpose SSD(gp3) : IOPS 성능 차이
+      - 범용 SSD(gp2)/General Purpose SSD(gp3) : IOPS(Input Output Per Second) 성능 차이
       - 프로비저닝된 IOPS(io1)/ Provisioned IOPS(io2) : 성능 차이/ io2가 SSD에서 제일 빠름
       - 마그네틱 : 옛날 방식의 HDD
+      - 볼륨 추가 후 mobaxterm 에서 포매팅
   - 태그 추가 : 인스턴스의 태그는 꼭 달기
     - 키 : Name / 값 : WEB01
   -  보안 그룹 구성
@@ -72,7 +79,18 @@
      -  유형 : SSH, HTTP, ALL ICMP(ipv4)
   - 키페어 생성 
   - Amazon Linux 2 사용자 데이터 ec2-user
+```bash
+#!/bin/bash
+yum install -y httpd
+systemctl enable --now httpd
+echo "<h1>WEB01</h1>" > /var/www/html/index.html
+```
   - ubuntu18 사용자 데이터 ubuntu
+```bash
+#!/bin/bash
+apt update 
+apt install -y apache2
+```
 
 ### ELB(Elastic Load Balancing)
 
@@ -111,3 +129,40 @@
   - 규칙 추가 - `규칙 우선순위 고려!`(L7 스위치 우선순위 까다로움)
     - if 경로 - 확장 - /food* 
     - then 전달 대상 - 대상 그룹에서 TG-FOOD 선택
+- 서울 리전 웹서버와 도쿄 리전 웹서버 ELB 불가 -> Route 53으로 해결 가능
+- 서울 리전 에서의 2개의 가용영역 2a, 2c를 ELB를 통해 부하 분산 하는 것
+- `Multi AZ` 가능
+- `Cross Region` 불가능 
+- Route53은 글로벌 세팅
+
+### EBS(Elastic Block Store)
+
+- 블록 스토리지
+  - 볼륨 포매팅 및 마운트, 파티션 확장
+  - 스냅샷과 함께 사용
+    - 스냅샷을 볼륨으로 생성
+    - 스냅샷을 이미지로 생성
+```bash
+# 볼륨 포매팅 후 마운트
+sudo mkfs -t ext4 /dev/xvdb
+sudo mount /dev/xvdb /mnt
+#파티션 확장
+sudo growpart /dev/xvda 1
+lsblk
+#XFS 파일 시스템 확장
+df -Th
+sudo xfs_growfs -d /
+df -Th
+```
+- 파일 스토리지
+- 객체 스토리지
+
+### AMI(Amazon Machine Image)
+
+- Root 스냅샷 생성
+- 스냅샷을 이미지 만들기에서 도쿄로 지정
+- 리전을 도쿄로 이동 후에 이미지 생성 된거 확인
+- EC2에서 생성된 이미지로 인스턴스 만들기
+- AMI 등록 취소 
+- AMI 등록 취소를 해야만 스냅샷 삭제 가능
+- 복사라는 기능은 전송 기능 포괄
