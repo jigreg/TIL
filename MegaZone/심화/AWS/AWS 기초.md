@@ -5,7 +5,7 @@
 - ap-northeast-2 서울 리전
 - ap-northeast-2a 가용 영역(Availability Zone: AZ) 추상적 개념
   - 2개 이상의 데이터 센터 존재(100KM 이내) 2a,2b,2c,2d
-  - 가용 역역 별로 Subnet 존재
+  - 가용 영역 별로 Subnet 존재
 - 기본 VPC 172.31.0.0/16
 - 2a subnet - 172.31.0.0/20
 - 2b subnet - 172.31.16.0/20
@@ -92,6 +92,8 @@ apt update
 apt install -y apache2
 ```
 
+### EC2 시작 템플릿
+
 ### ELB(Elastic Load Balancing)
 
 - 가용성을 높임, High Availability(HA) 고 가용성
@@ -135,6 +137,21 @@ apt install -y apache2
 - `Cross Region` 불가능 
 - Route53은 글로벌 세팅
 
+### AMI(Amazon Machine Image)
+
+- 스냅샷을 이미지로 만들기
+  - Root 스냅샷 생성
+  - 스냅샷을 이미지 만들기에서 도쿄로 지정
+  - 리전을 도쿄로 이동 후에 이미지 생성 된거 확인
+  - EC2에서 생성된 이미지로 인스턴스 만들기
+  - AMI 등록 취소 
+  - AMI 등록 취소를 해야만 스냅샷 삭제 가능
+  - 복사라는 기능은 전송 기능 포괄
+- 인스턴스를 이미지로 만들기
+  - ROOT 볼륨으로 스냅샷과 이미지를 동시에 만드는 것
+  - EC2 작업에서 이미지 및 템플릿 - 이미지 생성
+  - 재부팅 안함 - 활성화
+
 ### EBS(Elastic Block Store)
 
 - 블록 스토리지
@@ -154,15 +171,69 @@ df -Th
 sudo xfs_growfs -d /
 df -Th
 ```
+
+### EFS(Elastic File System)
+
 - 파일 스토리지
+- 파일 시스템 생성
+  - 일종의 인스턴스이므로 VPC가 필요
+  - 가용성 및 내구성 (리전 : 똑같은 내용을 여러 AZ에 저장 비용 ↑, One Zone : 단일 AZ에 저장 비용 ↓)
+- 네트워크에 들어가서 다중 AZ에서 사용가능 되었는지 확인
+- 연결에서 도메인 접근 방법
+  - EFS 탑재 헬퍼 사용 : EFS라는 도구를 설치
+    - 보안 그룹 새로 생성 SG-EFS NFS 인바운드 규칙 오픈
+    - 보안그룹 재설정
+```bash
+sudo yum install -y amazon-efs-utils
+sudo mkdir efs
+sudo mount -t efs -o tls fs-cdfwer38:/ efs
+```
+  - NFS 클라이언트 사용 : 전통적인 방법의 NFS 프로토콜 사용
+- IP를 통한 탑재
+  - 하이브리드 서버 구축 할 때 사용 
+
+### S3(Simple Storage Service)
+
 - 객체 스토리지
+- Google Drive, Opnestack Swift와 닮은 Storage
+- URL 생성 가능
+- VPC안에 없음, 글로벌에 있음 
+- 인터넷 연결을 통해서 접속 가능
+- ACL(Access Control List) : 접근 제어 목록 - 차단 및 허용에 권한 정책
+  - 비활성됨 : S3를 만든 사람, 소유자만 접근 가능, 가장 강력한 보안
+  - 활성화됨 : Public Access를 허용하는 것
+- 모든 퍼브릭 액세스 차단 해제 - 보통 3,4번만 체크
+- 버전관리 활성화 => 복원(Rollback)
+- 기본 암호화 서버측 암호화 SSE(Server Side Encryption) / SSE-KMS
+- 객체 잠금 - 비활성화
+- 파일 업로드
+- 업로드 후에 작업에서 ACL을 사용하여 퍼블릭으로 설정 => 누구나 접속 가능
+- 객체 스토리지의 특징 => Google Drive 공유 링크는 wget 명령어 다운로드 불가능하지만 S3 링크로는 wget 다운 가능, 링크 끝에가 파일명
 
-### AMI(Amazon Machine Image)
+### S3 Glacier
 
-- Root 스냅샷 생성
-- 스냅샷을 이미지 만들기에서 도쿄로 지정
-- 리전을 도쿄로 이동 후에 이미지 생성 된거 확인
-- EC2에서 생성된 이미지로 인스턴스 만들기
-- AMI 등록 취소 
-- AMI 등록 취소를 해야만 스냅샷 삭제 가능
-- 복사라는 기능은 전송 기능 포괄
+- 객체 스토리지
+- 클라우드의 아카이브 스토리지
+- HOT 는 빠름, COLD는 느림
+- 저렴하면서 대용량의 서비스를 제공, 한 번 업로드된것을 SEARCH하고 DOWNLOAD하는데 오래 걸림
+- 빠르게 자주 빈번하게 접근할 데이터는 GLACIER 저장 X
+
+### VPC(Virtual Private Cloud)
+
+- VPC, SUBNET, ROUTING TABLE, INTERNET GATEWAY
+- VPC 생성
+  - VPC만 - MY-VPC - IPV4 CIDR 10.26.0.0/16
+  - 자동으로 생성 : DHCP, 라우팅 테이블, 네트워크 ACL
+- SUBNET 생성
+  - MY-VPC 선택
+  - 서브넷 이름 :  MY-PUBLIC-SUBNET-2A
+  - 가용 영역 : ap-northeast-2a
+  - IPV4 CIDR : 10.26.0.0/20
+  - 같은 방법으로 2b,2c,2d 가용영역으로 생성
+- IGW 생성
+  - 인터넷 게이트 웨이 생성 MY-IGW
+  - VPC와 IGW 연결하여 인터넷과 통신 
+- 라우팅 테이블
+  - 라우팅 편집 - 라우팅 추가
+  - Destination - 0.0.0.0/0 , Target - 인터넷 게이트웨이(MY-IGW) 
+  - 서브넷 연결 편집 - 명시적 서브넷 연결
