@@ -218,7 +218,7 @@ sudo mount -t efs -o tls fs-cdfwer38:/ efs
 - 저렴하면서 대용량의 서비스를 제공, 한 번 업로드된것을 SEARCH하고 DOWNLOAD하는데 오래 걸림
 - 빠르게 자주 빈번하게 접근할 데이터는 GLACIER 저장 X
 
-### VPC(Virtual Private Cloud)
+### VPC(Virtual Private Cloud) - Public
 
 - VPC, SUBNET, ROUTING TABLE, INTERNET GATEWAY
 - VPC 생성
@@ -237,3 +237,72 @@ sudo mount -t efs -o tls fs-cdfwer38:/ efs
   - 라우팅 편집 - 라우팅 추가
   - Destination - 0.0.0.0/0 , Target - 인터넷 게이트웨이(MY-IGW) 
   - 서브넷 연결 편집 - 명시적 서브넷 연결
+- NAT 게이트웨이
+  - Public Subnet에 위치
+  - NAT 게이트 웨이 생성
+    - MY-NGW 
+    - MY-PUBLIC-SUBNET-2A
+  - 탄력적 IP - 사용하면 과금 X, 사용하지 않으면 과금 O
+  - 라우팅 테이블에서 라오팅 욺액 해드
+  - 송신전용 포트포워드
+  - Private Subnet에 0.0.0.0/0 NAT 게이트웨이 추가
+
+### VPC(Virtual Private Cloud) - Private
+
+- SUBNET 생성
+  - MY-VPC 선택
+  - 서브넷 이름 : MY-PRIVATE-SUBNET-2A
+  - 가용 영역 : ap-northeast-2a
+  - IPV4 CIDR : 10.26.60.0/20
+  - 같은 방법으로 2b,2c,2d 가용영역 생성
+- 라우팅 테이블 생성 
+  - 라우팅 테이블 이름 : MY-PRIVATE-SUBNET-RTB
+  - VPC 선택 : MY-VPC
+  - 내부네트워크 소통 라우팅 정보는 무조건 들어가 있음
+  - 외부네트워크 소통 IGW만 연결 x
+  - 서브넷 연결 - 명시적 서브넷 연결 - 생성한 프라이빗 서브넷 명시적 연결
+
+### Route 53 
+
+- 확장 가능한 DNS 및 도메인 이름 등록
+- Route : 경로 53 -> UDP 포트 번호
+- GSLB - Global Server Load Balancing => Route 53
+- DNS 관리
+  - 호스팅 영역 생성
+    - 순수 도메인만 입력
+    - aws nameserver 등록을 위해 가비아에 aws 4개의 네임 서버 주소 넣어주기
+    - 끝에 점 지우고 가비아에서 네임서버 등록
+  - 빠른 레코드 생성 
+- 라우팅 관리
+  -  트래픽 관리
+  -  가용성 모니터링
+
+### AWS RDS(Relational Database Service)
+
+- MySQL, MariaDB, Oracle, MS-SQL, Aurora(MySQL,PostgreSQL)
+- 데이터 베이스 생성 - 표준 생성
+  - 엔진 옵션 - MariaDB 10.2.39
+  - 템플릿 - 프리 티어
+  - 설정 - DB 인스턴스 식별자 : database-1
+  - 인스턴스 구성 - 버스터블 클래스 (db.t2.micro)
+  - 스토리지 - 범용 SSD(gp2)
+    - 스토리지 자동 조정 - Auto Scaling Scale up
+  - 연결 
+    - IPv4
+    - VPC - MY-VPC 
+    - 퍼블릭 액세스 - 아니요 , 경유를 해야만 접속 가능 경유 서버(Bastion host)
+    - VPC 보안그룹 - SG-DB
+    - 가용 영역 - ap-northeast-2b
+  - 추가 구성
+    - 초기 데이터베이스 이름 X
+    - 자동 백업
+- 엔드포인트 주소는 데이터베이스를 지워도 똑같음
+- `mysql -h database-1.endpoint.ap-northeast-2.rds.amazonaws.com -u admin -p` 
+- mysqldump -u[사용자아이디] -p[패스워드] 데이터베이스명 테이블명 > 경로 및 저장될 파일명.sql
+```
+sudo mysqldump -uwpuser -pwppass wordpress > wordpress.sql
+```
+- mysql -u[사용자아이디] -p[패스워드] 데이터베이스명 < 경로 및 덤프 파일명.sql
+```
+sudo mysql -h database-1.endpoint.ap-northeast-2.rds.amazonaws.com -uwpuser -pwppass wordpress < wordpress.sql
+```
