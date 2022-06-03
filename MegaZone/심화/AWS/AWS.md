@@ -243,7 +243,7 @@ sudo mount -t efs -o tls fs-cdfwer38:/ efs
     - MY-NGW 
     - MY-PUBLIC-SUBNET-2A
   - 탄력적 IP - 사용하면 과금 X, 사용하지 않으면 과금 O
-  - 라우팅 테이블에서 라오팅 욺액 해드
+  - 라우팅 테이블
   - 송신전용 포트포워드
   - Private Subnet에 0.0.0.0/0 NAT 게이트웨이 추가
 
