@@ -39,6 +39,13 @@ yum install -y httpd
 systemctl enable --now httpd
 echo "<h1>WEB01</h1>" > /var/www/html/index.html
 ``` 
+- 디스크 마운트하고 포맷하기
+  - Compute Management
+  - Disk Manager
+    - Disk2 우 클릭
+    - New Simple Volume
+- inet/wwwroot 폴더 권한 주기
+  - Properties에서 User/IIS_IUSRS Full control, Modify 주기
 
 ## Azure Load Balancing(부하분산)
 
@@ -132,7 +139,19 @@ echo "<h1>WEB01</h1>" > /var/www/html/index.html
   - 위치 : Korea Central
   - 버전 : 10.3
   - 컴퓨팅 + 스토리지 : vCore 1 , RAM 2 , Storage 5GB
+  - 보안 
+    - Azure 서비스 방문 허용 : 아니요, SSL 연결 적용 : 사용됨 => 보안 강화
+    - curl ipconfig.io => 내 IP 확인
 - 접속 방법
 ```
 mysql.exe -h mydemoserver.mariadb.database.azure.com -u Username@mydemoserver -p --ssl-ca=c:\ssl\BaltimoreCyberTrustRoot.crt.pem
 ``` 
+- BaltimoreTrustRoot Key로 DB서버 접속하기
+  - wp-config 파일에서 수동으로 설정하기
+    - DB_NAME : wordpress
+    - DB_USER : wpuser@seojun2022
+    - DB_PASSOWORD : wppass
+    - DB_HOST : endpointaddress.mariadb.database.azure.com
+    - define('MYSQL_CLIENT_FLAGS', MYSQLI_CLIENT_SSL);
+    - define('MYSQL_SSL_CERT','BaltimoreCyberTrustRoot.crt.pem');
+  - Database 서버에서 방화벽 WEBSERVER IP로 열어주기 
