@@ -45,6 +45,11 @@ echo "<h1>WEB01</h1>" > /var/www/html/index.html
   - SSH키 추가 : 키가 없는 모든 VM 인스턴스에 전파
   - id_rsa.pub 키 복사하여 추가하기
   - 키를 따로 지정해주지 않아도 모든 VM 접속 가능
+- Docker 이미지로 VM 만들기
+  - 나머지는 위에 인스턴스 만들기와 동일
+  - 컨테이너 구성
+    - 컨테이너 이미지 : dockerhub 주소
+    - 설정 default
 
 ## GCP LoadBalancing
 
@@ -98,3 +103,76 @@ echo "<h1>WEB01</h1>" > /var/www/html/index.html
     - `sudo mkfs -t ext4 /dev/sdb`
     - `sudo mount /dev/sdb /mnt`
 - 파일 스토리지(Filestore) : 파일 마이그레이션과 스토리지를 지원하는 완전 관리형 서비스 = AWS EBS, Azure files, NFS(Network File Storage), SAMBA
+  - Cloud Filestore API 활성화
+  - 인스턴스 만들기
+    - 이름 : 고유 이름 주기
+    - 서비스 등급 : 기본
+    - 스토리지 유형 : HDD
+    - 용량 할당 : 1TB
+    - 데이터 저장 위치 : asia-northeast3-a
+    - VPC 네트워크 - default
+  - vm에서 마운트
+    - `sudo yum install -y nfs-utils`
+    - `sudo mount -y nfs 10.86.25.122:/share /mnt` 
+
+## GCP Image Service
+
+- 운영체제 이미지를 사용하여 인스턴스의 부팅 디스크 
+- 두 가지 개념
+  - 머신 이미지 :  VM 만들기
+  - 커스텀 이미지 : VM 만들기
+- 머신 이미지 만들기
+  - 이름 : my-machine-image
+  - 소스 : web01
+  - 위치 : 리전 - asia-northeast3(서울) 
+- 스냅샷 만들기
+  - VM 만들 때 다시 설정해야되므로 번거로움
+  - 이름 : snapshot-1 
+  - 소스 디스크 : web02
+  - 위치 : 리전 - asia-northeast3(서울)
+- 커스텀 이미지 만들기 
+  - 이름 : seojun2022-img
+  - 소스 : 스냅샷
+  - 소스 디스크 : snapshot2
+  - 위치 : 리전 - asia-northeast3
+- 인스턴스 템플릿
+
+## GCP VPC(Virtual Private Cloud)
+
+- Compute Engine 가상 머신 인스턴스, Google Kubernetes Engine 클러스터, App Engine 가변형 환경에 네트워킹 기능 제공
+- 클라우드 기반 리소스 및 서비스에 대해 확장 가능하고 유연한 글로벌 네트워킹 제공
+- vpc 네트워크 만들기
+  - 이름 : my-vpc
+  - 서브넷 이름 : my-subnet
+  - 리전 : asia-northeast3
+  - IPv4 범위 : 10.26.0.0/16
+  - 방화벽
+
+## GCP Cloud DNS
+
+- 네트워크 서비스 - Cloud DNS
+- DNS 영역 만들기
+  - 영역 유형 : 공개
+  - 영역 이름 : seojun
+  - DNS 이름 : seojun.shop
+- 네임서버 파악하기
+- 네임서버 가비아에 추가하기
+- A레코드 추가하기
+
+## GCP Database Service
+
+- Cloud SQL은 완전 관리형 서비스인 관계형 MySQL, PostgresSQL, SQL Server 데이터베이스
+- Google에서 복제, 패치 관리, 데이터베이스 관리를 처리
+- MySQL
+  - 인스턴스 ID/PW
+  - 데이터베이스 버전 : MySQL 5.7
+  - 리전 : asia-northeast3 / 단일영역
+  - 인스턴스 맞춤설정
+    - 머신 유형 : 경량 vCPU 1개, 3.75GB
+    - 저장 용량 : SSD / 10 GB
+    - 연결 : 비공개 IP 
+      - 네트워크 : default vpc
+      - 비공개 서비스 액세스 연결 설정
+      - Service Networking API 사용
+      - IP 범위 할당 - 자동으로 할당된 IP 범위
+- `mysql -h 인스턴스 ip -u root -p` 
