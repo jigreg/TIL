@@ -180,3 +180,5 @@
 - 50TB, 80TB vs 100TB(83TB 사용 가능)
 
 ### Amazon ELB
+
+- Elatic Load Balancing
