@@ -119,3 +119,69 @@ cp -r /tmp/html/* /var/www/html/
 - 도쿄에서 외부로 핑 나가게 하기
   - 탄력적 IP 할당
   - 탄력적 IP 인스턴스 연결
+
+### IAM
+
+- AWS 서비스에 대한 액세스를 안전하게 제어하는 웹 서비스
+- IAM을 통해 사용자, 액세스 키와 같은 보안 자격 증명, 사용자와 애플리케이션이 어떤 AWS 리소스에 액세스 할 수 있는지 제어하는 권한을 한 곳에서 관리
+
+### RDS(Relational Database Service)
+
+- 완전 관리형 서비스 - 고가용성, 자동백업, 자동조정
+- 데이터 베이스 생성
+  - MySQL 5.7.22
+  - 개발(Dev) -> 테스트(QA) -> 스테이징 -> 프로덕션(Ops)
+- 퍼블릭 액세스는 웬만하면 사용 X
+- 굳이 해야된다면 퍼블릭 서브넷으로 연결
+- 이미 적용된 서브넷 그룹은 변경 X
+
+### ELB(Elatsic Load Balancing)
+
+- 대상 그룹
+  - 인스턴스
+  - 이름 : TG-NLB
+  - TCP 80
+  - 아래에 보류 중인 것으로 포함
+  - 대상 그룹 생성
+  - 인스턴스
+  - 이름 : TG-ALB
+  - HTTP 80
+  - HTTP1
+  - 아래에 보류 중인 것으로 포함
+  - 대상 그룹 생성
+- Network Load Balancer
+  - 이름 : ELB-NLB
+  - 체계 : 인터넷 경계
+  - IP유형 : IPv4
+  - 네트워크 매핑 
+    - VPC : MY-VPC
+    - 매핑 : ap-northeast-2a / ap-northeast-2c
+- Application Load Balancer
+  - 이름 : ELB-ALB 
+  - 체계 : 인터넷 경계
+  - IP유형 : IPv4
+  - 네트워크 매핑 
+    - VPC : MY-VPC
+    - 매핑 : ap-northeast-2a / ap-northeast-2c
+  - 보안 그룹 
+    - 우회할 수 있는 경로를 차단 방법 존재
+    - 우회할 수 있는 경로가 있으므로 alb는 보안그룹이 존재
+  - 모바일과 PC 접속 트래픽 분산시키기
+    - 대상 그룹에서 각각의 웹서버 대상 그룹 생성
+    - TG-CACTUS / TG-RABBIT
+    - ALB - 리스너 - 규칙 편집
+    - 규칙 삽입
+    - IF - HTTP헤더 User-Agent / 확장하는데 `*Mobile*`
+    - 규칙 삽입
+    - HTTP 헤더 User-Agent / 확장하는데 `*Chrome*`
+
+### AutoScaling
+
+- 하나의 웹서버로 구성하는 것 => 단일 장애 지점(SPOF; Single Point Of Failure)
+- 인스턴스 - 작업 - 이미지 생성
+- 이미지 - 스냅샷을 빠르게 생성하기 위한 껍데기(?) 같은 느낌
+  - 이름 : MY-AMI
+  - 재부팅 안함 활성화
+- 시작 템플릿
+  - 이름 : MY-TEMP
+  - Auto Scaling 지침
