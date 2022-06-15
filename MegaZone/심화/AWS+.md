@@ -185,3 +185,90 @@ cp -r /tmp/html/* /var/www/html/
 - 시작 템플릿
   - 이름 : MY-TEMP
   - Auto Scaling 지침
+  - 이미지 - 내 AMI(MY-AMI)
+  - 인스턴스 유형 - t2.micro
+  - 키페어 : aws-key
+  - 네트워크
+    - 서브넷 : 시작 템플릿에 포함하지 않음
+    - 보안 그룹 : SG-WEB
+- Auto Scaling 그룹(ASG)
+  - 그룹 생성
+  - 그룹 이름 : MY-ASG
+  - 시작 템플릿 : MY-TEMP
+  - 네트워크 
+    - VPC : MY-VPC
+    - 서브넷 : MY-PUBLIC-SUBNET-2A / MY-PUBLIC-SUBNET-2C
+  - 새 로드밸런서에 연결
+    - Application Load Balancer
+    - 로드 밸런서 이름 : MY-ASG-ALB
+    - 로드 밸런서 체계 : Internet-facing(인터넷 경계)
+    - 리스너 및 라우팅 : 대상 그룹 생성 (TG-ASG-ALB)
+    - 그룹 크기(Capacity) 
+      - 원하는 용량 : 2 
+      - 최소 용량 : 1 (실무에서는 원하는 용량과 같이 맞춰줌)
+      - 최대 용량 : 4
+    - 크기 조정 정책 : 없음 (CloudWatch에서 세팅)
+    - 알림 추가 (SNS; Simple Notification Service) - 이메일, SMS
+  - 자동 크기 조정
+    - 동적 크기 조정 정책
+      - Scale OUT 정책
+      - 정책 유형 : 단순 크기 조정
+      - 정책 이름 : ScaleOutPolicy
+      - CloudWatch 경보 - 생성 - ScaleOutAlert
+        - 지표 선택
+        - EC2 - Auto Scaling 그룹별 - CPUUtilization
+        - 조건 : 정적 / 보다 크거나 같음 / 70
+        - 알림 : 경보 상태 / MY-SNS
+        - 이름 및 설명 - 경보 이름 : ScaleOutAlert
+      - 작업 수행 : 추가 1 용량 단위 
+      - Scale IN 정책
+      - 정책 유형 : 단순 크기 조정
+      - 정책 이름 : ScaleInPolicy
+      - CloudWatch 경보 - 생성 - ScaleInAlert
+        - 지표 선택
+        - EC2 - Auto Scaling 그룹별 - CPUUtilization
+        - 조건 : 정적 / 보다 작거나 같음 / 30
+        - 알림 : 경보 상태 / MY-SNS
+        - 이름 및 설명 - 경보 이름 : ScaleInAlert
+      - 작업 수행 : 제거 1 용량 단위 
+  - CPU 과부하 주기
+    - `$top` : CPU 사용량 보기
+    - yes > /dev/null &  
+    - & 기호는 백그라운드 실행
+
+### 보안 그룹 VS 네트워크 ACL
+
+- 보안 그룹(허용) - 특정 IP만 차단 불가능
+  - 인스턴스 레벨
+  - 허용 규칙만 지원
+  - 상태 저장 : 규칙에 관계 없이 반환 트래픽이 자동 허용
+  - 트래픽 허용 여부를 결정하기 전에 모든 규칙을 평가
+  - 인스턴스 시작 시 보안그룹 지정, 보안그룹을 인스턴스와 연결하는 경우에만 적용
+- 네트워크 ACL(차단)
+  - 서브넷 레벨
+  - 허용 및 거부 규칙 지원
+  - 상태 비저장 : 반환 트래픽이 규칙에 의해 명시적 허용
+  - 트래픽 허용 여부를 결정할 때 번호가 낮은 규칙부터 처리
+  - 연결된 서브넷의 모든 인스턴스에 자동 적용
+
+### NAT Gateway
+
+- NAT 게이트웨이 생성
+  - 이름 : MY-NGW
+  - 서브넷 : MY-PUBLIC-SUBNET-2D
+  - 탄력적 IP 할당
+- 라우팅 테이블 - MY-PRIVATE-SUBNET - 라우팅 편집
+  - 0.0.0.0 => NAT 게이트웨이
+
+### EFS
+
+- 파일 시스템 생성
+  - 이름 : MY-EFS
+  - VPC : MY-VPC
+  - 리전 : 리전(여러 AZ)
+- VPC 보안그룹 생성 
+  - 이름 : SG-EFS
+  - 인바운드 규칙 : NFS / SG-ALB
+                    NFS / SG-WEB
+- EFS 보안 그룹 변경
+  - MY-EFS - 네트워크에서 보안그룹을 SG-EFS로 변경 
