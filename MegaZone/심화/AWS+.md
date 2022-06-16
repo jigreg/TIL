@@ -272,3 +272,92 @@ cp -r /tmp/html/* /var/www/html/
                     NFS / SG-WEB
 - EFS 보안 그룹 변경
   - MY-EFS - 네트워크에서 보안그룹을 SG-EFS로 변경 
+
+### IAM
+
+- 사용자 만들기
+  - 이름 : s3-user
+  - 액세스 유형 선택 : 액세스 키
+  - 기존 정책 직접 연결 : AmazonS3FullAccess
+
+### AWS CLI
+- aws cli 설치
+- CLI 실행 - cmd
+  - aws --version
+  - aws configure
+    - 아까 받은 csv파일에서 Access Key, Secret Access Key 입력
+    - 리전명 : ap-northeast2
+    - output format : json
+- S3에 파일 업로드
+  - 버킷 리스트 보기
+    - aws s3 ls
+  - 폴더를 만들면서 이미지 업로드
+    - aws s3 cp two-rabbit.jpg s3://seoul.seojun.shop/images/
+  - 버킷에서 파일 리스트 보기
+    - aws s3 ls s3://seoul.seojun.shop
+  - 폴더 통째로 업로드하기
+    - aws s3 sync backup s3://seoul.seojun.shop/backup/
+  - 파일 지우기
+    - aws s3 rm s3://seoul.seojun.shop/backup/alibaba.tar
+  - 폴더 지우기
+    - aws s3 rm s3://seoul.seojun.shop/backup/ --recursive 
+  - 배치파일로 파일 백업 하기
+    - backup.bat 파일 만들어서 명령어 넣기
+    - aws s3 sync c:\users\r2com\backup s3://seoul.seojun.shop/backup
+    - 작업 스케쥴러
+      - 작업 만들기
+      - s3 backup
+      - 가장 높은 수준의 권한으로 실행
+      - 트리거 만들기
+
+### S3(Simple Storage Service)
+
+- 버킷 만들기
+  - 버킷 이름 : seoul.seojun.shop
+  - 리전 : ap-northeast-2
+  - 객체 소유권 : ACL 활성화됨
+  - 버킷의 퍼블릭 액세스 차단 설정 : 3,4 번만 체크
+  - 버킷 버전 관리 : 활성화
+  - 기본 암호화 : 활성화 (Amazon S3 관리형 키)
+- 정적 웹 사이트 호스팅
+  - 활성화
+  - 정적 웹 사이트 호스팅
+- 퍼블릭 액세스 권한 주기 
+  - 객체에서 파일 선택후 작업 - ACL을 사용하여 퍼블릭으로 설정
+
+### ACM (AWS Certificate Manager)
+
+- SSL 인증서 받기
+- HTTPS를 사용하면 누군가 가져가지 못하게함
+- 개인정보를 다루는 사이트는 HTTPS를 이용해야함
+- 퍼블릭 인증서 요청
+  - 도메인 이름 : *.seojun.shop
+  - Route53에서 레코드 생성 검증 받기
+- ALB 만들기
+  - 앞서 만든 로드밸런서와 같이 만듬
+  - 리스너 HTTPS 443
+  - HTTPS로 바꾸고 대상그룹 만들기
+    - 대상 그룹 이름 : TG-ALB
+    - 프로토콜 : HTTP 80
+    - VPC : MY-VPC
+  - 보안 리스너 
+    - ACM에서 만든 인증서 선택 
+- 보안 그룹 HTTPS 포트 열기
+- Route53에서 레코드 생성하기
+  - ACM 인증서를 도메인으로 받았기 때문에 DNS주소로는 접속 위험
+  - A 레코드
+  - 별칭 - Application 로드밸런서
+  - 리전 : 아시아 태평양(서울)
+
+### CloudFront
+
+- 원본 도메인 : paulo
+- S3 버킷 액세스 : OAI 사용 안함 
+- 경로 패턴 : 기본값(*)
+- 뷰어 프로토콜 : HTTP and HTTPS
+- 설정
+  - 가격 분류 : 모든 엣지 로케이션에서 사용(최고의 성능)
+  - WAF(Web Application Firewall) : 웹 방화벽 - 이상 징후 감지, 로그, 탐지, 차단
+  - 대체 도메인 : cf.seojun.shop
+  - SSL 인증서 추가
+  - 기본값 루트 객체 - index.html
