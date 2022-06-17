@@ -22,13 +22,14 @@ Optional Service
 - Sec : 
 - SWAP : 12GB
 - 파티션 Setting : /home 삭제 후 swap 메모리에 추가 할당 (12GB)
+- Software Selection : Minimal Install
 
 ### Openstack VM 최소사양 & 권장사양
 - CPU : 4C(시스템 8C)        24C (Baremetal)
 - RAM : 8GB(시스템 16GB)     24GB (Baremetal)
 
 ## Open Stack Setting
-- IP : 192.168.0.126/20
+- IP : 192.168.0.70/20
 - G/W : 192.168.0.1
 - 인증 : 프로젝트 생성, 사용자 생성
 - 관리 - 네트워크 
@@ -36,7 +37,8 @@ Optional Service
   - 공급자 네트워크 유형 : Flat
   - 물리적인 네트워크 : extnet
   - 외부네트워크 ,DHCP 사용 체크 해제
-  - Pools 할당 192.168.11.1,192.168.11,126
+  - SUBNET 생성 : EXTERNAL-SUBNET , 192.168.0.0/20 , 192.168.0.1
+  - Pools 할당 192.168.10.129,192.168.10.254
 - Compute - Flavor
   - Flavor 생성
   - m1.micro, ID : 6, VCPUs : 1, RAM : 1024, Root Disk : 10GB
@@ -73,7 +75,7 @@ systemctl enable --now httpd
              Scale out -> 자원을 수평적 확장
 
 ## Openstack 싱글 노드 설치
-Openstack ip : 192.168.0.53/20
+Openstack ip : 192.168.0.70/20
 Gateway : 192.168.0.1
 ```
 # vi /etc/sysconfig/network-scripts/ifcfg-ens160
@@ -82,7 +84,7 @@ BOOTPROTO=none
 NAME=ens160
 DEVICE=ens160
 ONBOOT=yes
-IPADDR=192.168.0.126
+IPADDR=192.168.0.70
 NETMASK=255.255.240.0
 GATEWAY=192.168.0.1
 DNS1=192.168.0.66
@@ -108,7 +110,7 @@ SELINUX=disabled
 # vi /root/answers.txt
 CONFIG_DEFAULT_PASSWORD=Test1234!
 CONFIG_KEYSTONE_ADMIN_PW=Test1234!
-CONFIG_CINDER_VOLUMES_SIZE=90G
+CONFIG_CINDER_VOLUMES_SIZE=100G
 CONFIG_NTP_SERVERS=0.kr.pool.ntp.org
 CONFIG_CEILOMETER_INSTALL=n
 CONFIG_AODH_INSTALL=n
