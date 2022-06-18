@@ -179,6 +179,9 @@
 - Amazon S3에 업로드하고 다운로드
 - 50TB, 80TB vs 100TB(83TB 사용 가능)
 
-### Amazon ELB
-
-- Elatic Load Balancing
+### AWS S3
+- S3 Intelligent - Tiering - 액세스 패턴을 알 수 없거나 액세스 패턴이 변경되는 데이터에 대해 자동 비용 절감 효과 제공
+- S3 Standard - Infrequent Access - 라이브 상태가 된 지 오래되었지만 밀리초 단위 액세스 성능이 요구되는 자주 액세스하지 않는 데이터용
+- S3 One Zone - Infrequent Access - 밀리초 단위 액세스 성능이 요구되는 다시 생성 가능한 자주 액세스하지 않는 데이터용
+- S3 Glacier - 검색 옵션이 1분부터 12시간까지인 장기적인 백업 및 아카이브용
+- S3 Glacier Deep Archive - 일년에 한두 번 액세스하고 12시간 이내에 복원할 수 있는 장기적인 데이터 아카이빙용
