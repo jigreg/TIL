@@ -185,3 +185,8 @@
 - S3 One Zone - Infrequent Access - 밀리초 단위 액세스 성능이 요구되는 다시 생성 가능한 자주 액세스하지 않는 데이터용
 - S3 Glacier - 검색 옵션이 1분부터 12시간까지인 장기적인 백업 및 아카이브용
 - S3 Glacier Deep Archive - 일년에 한두 번 액세스하고 12시간 이내에 복원할 수 있는 장기적인 데이터 아카이빙용
+
+### AWS ECS
+- Amazon Elastic Container Service(Amazon ECS)는 클러스터에서 도커 컨테이너를 손쉽게 실행, 중지 및 관리할 수 있게 해주는 컨테이너 관리 서비스로서 확장성과 속도가 뛰어남 
+- Amazon ECS 시작 유형을 사용하는 서비스 또는 작업을 시작하여 Fargate에서 관리하는 서버를 사용하지 않는 인프라에서 클러스터를 호스팅 
+- 인프라에 대한 더 세부적인 제어를 위해 EC2 시작 유형을 사용하여 관리하는 Amazon Elastic Compute Cloud(Amazon EC2) 인스턴스의 클러스터에서 작업을 호스팅
