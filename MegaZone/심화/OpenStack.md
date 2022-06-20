@@ -29,7 +29,7 @@ Optional Service
 - RAM : 8GB(시스템 16GB)     24GB (Baremetal)
 
 ## Open Stack Setting
-- IP : 192.168.0.70/20
+- IP : 192.168.0.99/20
 - G/W : 192.168.0.1
 - 인증 : 프로젝트 생성, 사용자 생성
 - 관리 - 네트워크 
@@ -75,7 +75,7 @@ systemctl enable --now httpd
              Scale out -> 자원을 수평적 확장
 
 ## Openstack 싱글 노드 설치
-Openstack ip : 192.168.0.70/20
+Openstack ip : 192.168.0.99/20
 Gateway : 192.168.0.1
 ```
 # vi /etc/sysconfig/network-scripts/ifcfg-ens160
@@ -84,7 +84,7 @@ BOOTPROTO=none
 NAME=ens160
 DEVICE=ens160
 ONBOOT=yes
-IPADDR=192.168.0.70
+IPADDR=192.168.0.99
 NETMASK=255.255.240.0
 GATEWAY=192.168.0.1
 DNS1=192.168.0.66
