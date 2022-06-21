@@ -65,7 +65,7 @@ conn Tunnel1
 	auto=start
 	left=%defaultroute
 	leftid=123.142.252.25
-	right=13.124.202.55
+	right=3.38.123.22
 	type=tunnel
 	ikelifetime=8h
 	keylife=1h
@@ -85,7 +85,7 @@ conn Tunnel2
 	auto=start
 	left=%defaultroute
 	leftid=123.142.252.25
-	right=54.180.47.146
+	right=52.79.163.252
 	type=tunnel
 	ikelifetime=8h
 	keylife=1h
@@ -105,17 +105,78 @@ conn Tunnel2
 123.142.252.25 54.180.47.146: PSK "Pre Shared Key / 구성 다운로드 하면 주어짐"
 
 # systemctl restart ipsec
+# iptables -F
+# systemctl restart ipsec
 ``` 
 - MY-VPC 라우팅 편집
   - MY-PUBLIC-SUBNET-RTB 라우팅 편집
   - 192.168.0.0/20 가상 프라이빗 네트워크 vgw 추가
   - MY-PRIVATE-SUBNET-RTB 라우팅 편집
   - 192.168.0.0/20 가상 프라이빗 네트워크 vgw 추가
-- Openstack 라우터 추가
+- Openstack 라우터 추가 - 웹 콘솔
   - 정적 경로 추가
   - 대상 CIDR : MY-VPC IP 추가 10.26.0.0/16 
   - 다음 홉 : Openstack IP 
   - Openstack이 AWS VGW 역할을 하므로 다음 홉을 Openstack ip
+- AWS Ping Test
+  - ping Openstack Instance FloatingIP(192.168.10.173)
+- Openstack Instance Ping Test
+  - ping AWS 내부 IP(10.26.38.158)  
+- EFS 만들기 
+  - 이름 : MY-EFS
+  - VPC : MY-VPC
+  - 리전 : 리전
+  - 네트워크 - 보안 그룹 재설정 - SG-EFS
+- AWS Storage Gateway VM ESXI
+  - ESXi Spec
+    - CPU 4C
+    - RAM 16GB
+    - SSD 128GB
+    - NETWORK Bridged
+  - VM Spec (AWS File Gateway)
+    - CPU 4C
+    - RAM 12GB
+    - SSD 128GB(Cache 150GB) 
+  - VM 설치후 인스턴스 설치
+    - 이름 : MY-FGW
+    - OVA 파일 업로드
+    - 스토리지 default
+    - 배포 옵션 NAT / 씬 / 전원 켜기 끄기
+  - VM 설정
+    - 설정 편집에서 메모리 낮추기
+    - 메모리 : 12GB
+    - 하드 디스크 추가
+      - 150GB / 씬 프로비저닝됨
+  - 콘솔로 로그인
+    - ID : admin
+    - PW : password 
+    - ip 확인
+  - AWS Storage Gateway
+    - 게이트웨이
+      - 이름 :  MY-SGW
+      - Amazon S3 파일 게이트웨이
+      - 엔드포인트 옵션 : 퍼블릭 액세스 가능
+      - 게이트웨이 연결 옵션 : IP 주소 / 콘솔로 들어갔을 때 뜨는 ip
+      - 캐시 스토리지 구성 : SCSI
+      - 새 로그 그룹 생성 / 경보 비활성화
+    - 파일 공유 
+      - S3 만들기
+        - 버킷 이름 : s3.seojun.shop
+        - ACL 활성화됨
+        - 모든 퍼블릭 액세스 차단 3,4번 체크
+      - 파일 공유 생성
+        - 게이트웨이 : MY-SGW
+        - S3 버킷 이름
+        - s3.seojun.shop
+        - 리전 : ap-northeast-2
+        - 객체 액세스 : NFS
+        - S3 버킷에 액세스 : 새 IAM 역할 생성
+        - 파일 액세스 설정 : default
+    - 확인 방법
+      - 윈도우에서 NFS 설정 켜기 (제어판 - 프로그램 제거/변경 - NFS 설정 켜기)
+      - cmd 관리자 권한으로 실행
+      - `mount -o nolock -o mtype=hard 192.168.0.138:/s3.seojun.shop z: `
+      - z 드라이브 이동 `cd /d z:`
 
 
 ### GSLB(Global Server Load Balancing) - 무중단 서비스
@@ -267,3 +328,14 @@ backend backend_servers
   - 장애 조치 레코드 유형 : 보조
   - 상태 확인 ID : passive
   - 레코드 ID : Tokyo-Active
+- 지리적 기반 라우팅
+  - 레코드 이름 : geo.seojun.shop
+  - 유형 : A
+  - 라우팅 정책 : 지리적 위치
+  - 차별화 요소 : 아시아
+  - ip : 홍콩 ip
+  - 같은 매커니즘으로 지리적 위치 별 레코드 만들어주기
+  - 테스트 방법
+    - 리전에 윈도우 서버 하나 만들어서 접속해 보기
+    - 윈도우 서버 암호 해독 방법
+    - 연결에서 암호 해독
