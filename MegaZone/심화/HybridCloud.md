@@ -250,9 +250,9 @@ frontend  http-in
 backend backend_servers
     balance            roundrobin
 #    cookie  SVID insert indirect nocache maxlife 3m
-    server             seoul 3.36.122.217:80 cookie w1 check
-    server             london 20.117.241.211:80 cookie w2 check
-    server             oregon 35.247.86.177:80 cookie w3 check
+    server             seoul 13.124.75.118:80 cookie w1 check
+    server             london 20.68.197.241:80 cookie w2 check
+    server             oregon 104.196.247.81:80 cookie w3 check
     server             hongkong 47.242.248.113:80 cookie w4 check
 
 # sudo systemctl start haproxy
