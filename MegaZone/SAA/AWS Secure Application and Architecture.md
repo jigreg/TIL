@@ -191,3 +191,5 @@
 - Amazon ECS 시작 유형을 사용하는 서비스 또는 작업을 시작하여 Fargate에서 관리하는 서버를 사용하지 않는 인프라에서 클러스터를 호스팅 
 - 인프라에 대한 더 세부적인 제어를 위해 EC2 시작 유형을 사용하여 관리하는 Amazon Elastic Compute Cloud(Amazon EC2) 인스턴스의 클러스터에서 작업을 호스팅
 
+### AWS Auto Scaling
+- 
