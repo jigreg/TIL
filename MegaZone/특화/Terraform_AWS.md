@@ -384,6 +384,356 @@ variable "ssh_port" {
 }
 ```
 
-## AWS Terraform ALL
+## AWS Terraform ASG(AutoScaling)
+
+### variables.tf
 ```
+# vi variables.tf
+variable "instance_security_group_name" {
+  description = "The name of the security group for the EC2 Instances"
+  type        = string
+  default     = "terraform-example-instance"
+}
+
+variable "http_port" {
+  description = "The port the server will use for HTTP requests"
+  type        = number
+  default     = 80
+}
+
+variable "ssh_port" {
+  description = "The port the server will use for SSH requests"
+  type        = number
+  default     = 22
+}
+
+variable "alb_name" {
+  description = "The name of the ALB"
+  type        = string
+  default     = "terraform-asg-example"
+}
+
+variable "alb_security_group_name" {
+  description = "The name of the security group for the ALB"
+  type        = string
+  default     = "terraform-example-alb"
+}
+```
+### main.tf
+```
+# vi main.tf
+provider "aws" {
+  region = "ap-northeast-2"
+}
+
+### new-vpc ###
+
+resource "aws_vpc" "new_vpc" {
+  cidr_block  = "192.168.0.0/16"
+  enable_dns_hostnames = true
+  enable_dns_support = true
+  instance_tenancy = "default"
+
+  tags = {
+    Name = "NEW-VPC"
+  }
+}
+
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
+resource "aws_subnet" "new_public_subnet_2a" {
+  vpc_id = aws_vpc.new_vpc.id
+  cidr_block = "192.168.0.0/20"
+  map_public_ip_on_launch = true
+  availability_zone = data.aws_availability_zones.available.names[0]
+  tags = {
+    Name = "NEW-PUBLIC-SUBNET-2A"
+  }
+}
+
+resource "aws_subnet" "new_public_subnet_2b" {
+  vpc_id = aws_vpc.new_vpc.id
+  cidr_block = "192.168.16.0/20"
+  map_public_ip_on_launch = true
+  availability_zone = data.aws_availability_zones.available.names[1]
+  tags = {
+    Name = "NEW-PUBLIC-SUBNET-2B"
+  }
+}
+
+resource "aws_subnet" "new_public_subnet_2c" {
+  vpc_id = aws_vpc.new_vpc.id
+  cidr_block = "192.168.32.0/20"
+  map_public_ip_on_launch = true
+  availability_zone = data.aws_availability_zones.available.names[2]
+  tags = {
+    Name = "NEW-PUBLIC-SUBNET-2C"
+  }
+}
+
+resource "aws_subnet" "new_public_subnet_2d" {
+  vpc_id = aws_vpc.new_vpc.id
+  cidr_block = "192.168.48.0/20"
+  map_public_ip_on_launch = true
+  availability_zone = data.aws_availability_zones.available.names[3]
+  tags = {
+    Name = "NEW-PUBLIC-SUBNET-2D"
+  }
+}
+
+resource "aws_internet_gateway" "new_igw" {
+  vpc_id = aws_vpc.new_vpc.id
+  tags = {
+    Name = "NEW-IGW"
+  }
+}
+
+resource "aws_route_table" "new_public_rtb" {
+  vpc_id = aws_vpc.new_vpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.new_igw.id
+  }
+  tags = {
+    Name = "NEW-PUBLIC-RTB"
+  }
+}
+
+resource "aws_route_table_association" "new_public_subnet_2a_association" {
+  subnet_id = aws_subnet.new_public_subnet_2a.id
+  route_table_id = aws_route_table.new_public_rtb.id
+}
+
+resource "aws_route_table_association" "new_public_subnet_2b_association" {
+  subnet_id = aws_subnet.new_public_subnet_2b.id
+  route_table_id = aws_route_table.new_public_rtb.id
+}
+
+resource "aws_route_table_association" "new_public_subnet_2c_association" {
+  subnet_id = aws_subnet.new_public_subnet_2c.id
+  route_table_id = aws_route_table.new_public_rtb.id
+}
+
+resource "aws_route_table_association" "new_public_subnet_2d_association" {
+  subnet_id = aws_subnet.new_public_subnet_2d.id
+  route_table_id = aws_route_table.new_public_rtb.id
+}
+
+### asg ###
+resource "aws_security_group" "instance" {
+  name   = var.instance_security_group_name
+  vpc_id = aws_vpc.new_vpc.id
+
+  ingress {
+    from_port   = var.http_port
+    to_port     = var.http_port
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port   = -1
+    to_port     = -1
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_launch_configuration" "example" {
+  image_id        = "ami-0fd0765afb77bcca7"
+  instance_type   = "t2.micro"
+  security_groups = [aws_security_group.instance.id]
+  key_name        = "new-key"
+  user_data       = file("user-data.sh")
+
+  # Required when using a launch configuration with an auto scaling group.
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_autoscaling_group" "example" {
+  launch_configuration = aws_launch_configuration.example.name
+  vpc_zone_identifier  = [
+    aws_subnet.new_public_subnet_2a.id,
+    aws_subnet.new_public_subnet_2b.id,
+    aws_subnet.new_public_subnet_2c.id,
+    aws_subnet.new_public_subnet_2d.id
+  ]
+
+  target_group_arns = [aws_lb_target_group.asg.arn]
+  health_check_type = "ELB"
+
+  min_size         = 2
+  desired_capacity = 2
+  max_size         = 4
+
+  tag {
+    key                 = "Name"
+    value               = "terraform-asg-example"
+    propagate_at_launch = true
+  }
+}
+
+resource "aws_lb" "example" {
+
+  name               = var.alb_name
+
+  load_balancer_type = "application"
+  subnets            = [
+    aws_subnet.new_public_subnet_2a.id,
+    aws_subnet.new_public_subnet_2b.id,
+    aws_subnet.new_public_subnet_2c.id,
+    aws_subnet.new_public_subnet_2d.id
+  ]
+  security_groups    = [aws_security_group.alb.id]
+}
+
+resource "aws_lb_listener" "http" {
+  load_balancer_arn = aws_lb.example.arn
+  port              = var.http_port
+  protocol          = "HTTP"
+
+  # By default, return a simple 404 page
+  default_action {
+    type = "fixed-response"
+
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "404: page not found"
+      status_code  = 404
+    }
+  }
+}
+
+resource "aws_lb_target_group" "asg" {
+
+  name = var.alb_name
+
+  port     = var.http_port
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.new_vpc.id
+
+  health_check {
+    path                = "/"
+    protocol            = "HTTP"
+    matcher             = "200"
+    interval            = 15
+    timeout             = 3
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_lb_listener_rule" "asg" {
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 100
+
+  condition {
+    path_pattern {
+      values = ["*"]
+    }
+  }
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.asg.arn
+  }
+}
+
+resource "aws_security_group" "alb" {
+  vpc_id = aws_vpc.new_vpc.id
+  name   = var.alb_security_group_name
+
+  # Allow inbound HTTP requests
+  ingress {
+    from_port   = var.http_port
+    to_port     = var.http_port
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow all outbound requests
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+resource "aws_autoscaling_policy" "scale_in" {
+  name                   = "ScaleInPolicy"
+  autoscaling_group_name = aws_autoscaling_group.example.name
+  adjustment_type        = "ChangeInCapacity"
+  scaling_adjustment     = -1
+  cooldown               = 300
+}
+
+resource "aws_cloudwatch_metric_alarm" "scale_in" {
+  alarm_description   = "Monitors CPU utilization for Terramino ASG"
+  alarm_actions       = [aws_autoscaling_policy.scale_in.arn]
+  alarm_name          = "ScaleInAlarm"
+  comparison_operator = "LessThanOrEqualToThreshold"
+  namespace           = "AWS/EC2"
+  metric_name         = "CPUUtilization"
+  threshold           = "30"
+  evaluation_periods  = "1"
+  period              = "300"
+  statistic           = "Average"
+
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.example.name
+  }
+}
+resource "aws_autoscaling_policy" "scale_out" {
+  name                   = "ScaleOutPolicy"
+  autoscaling_group_name = aws_autoscaling_group.example.name
+  adjustment_type        = "ChangeInCapacity"
+  scaling_adjustment     = 1
+  cooldown               = 300
+}
+
+resource "aws_cloudwatch_metric_alarm" "scale_out" {
+  alarm_description   = "Monitors CPU utilization for Terramino ASG"
+  alarm_actions       = [aws_autoscaling_policy.scale_out.arn]
+  alarm_name          = "ScaleOutAlarm"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  namespace           = "AWS/EC2"
+  metric_name         = "CPUUtilization"
+  threshold           = "70"
+  evaluation_periods  = "1"
+  period              = "300"
+  statistic           = "Average"
+
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.example.name
+  }
+}
+```
+```
+# vi user-data.sh
+#!/bin/bash
+yum install -y httpd
+systemctl enable --now httpd
+echo "Hello AWS TERRAFORM" > /var/www/html/index.html
+timedatectl set-timezone Asia/Seoul
+rdate -s time.bora.net
+echo $(date +"%H:%M:%S") >> /var/www/html/index.html
+sleep 600
+yes > /dev/null &
+
 ```
