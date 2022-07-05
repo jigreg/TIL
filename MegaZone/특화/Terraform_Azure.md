@@ -233,5 +233,6 @@ output "tls_private_key" {
 # terraform apply
 # terraform output -raw tls_private_key > azure-key.pem
 # terraform output public_ip_address
-# ssh -i id_rsa azureuser@<public_ip_address>
+# chmod 400 azure-key.pem
+# ssh -i azure-key.pem azureuser@<public_ip_address>
 ```
