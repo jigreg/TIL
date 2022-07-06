@@ -46,11 +46,11 @@ echo "Hello GCP CLI" > /var/www/html/index.html
     --zone=asia-northeast3-a \
     --metadata-from-file=startup-script=httpd-gcp.txt
 
-# ssh-keygen -t rsa -f /root/.ssh/johnlee -C johnlee -b 2048
-# vi /root/.ssh/johnlee.pub
-johnlee:ssh-rsa
+# ssh-keygen -t rsa -f /root/.ssh/seojun -C seojun -b 2048
+# vi /root/.ssh/seojun.pub
+seojun:ssh-rsa
 # gcloud compute os-login ssh-keys add \
-    --key-file=/root/.ssh/johnlee.pub \
+    --key-file=/root/.ssh/seojun.pub \
     --project=gcp-seojun \
     --ttl=365d
 # gcloud compute instances add-metadata web01 --metadata-from-file ssh-keys=/root/.ssh/johnlee.pub
