@@ -132,3 +132,390 @@ ip = 192.168.0.180
 # ssh-copy-id root@192.168.0.235
 # ssh-copy-id root@192.168.0.237
 ```
+
+### Ansible Env Setting Playbook
+- KeyScan 설정 - 서버가 400개일시 items에 400개 추가해야댐
+```
+# vi keyscan.yml
+- name: Setup for the Ansible's Environment
+  hosts: localhost
+  gather_facts: no
+  
+  tasks:
+    - name: Generate sshkey
+      shell: "{{ item }}"
+      with_items:
+        - "ssh-keyscan 192.168.0.235 >> ~/.ssh/known_hosts"
+        - "ssh-keyscan 192.168.0.237 >> ~/.ssh/known_hosts"
+        - "ssh-keyscan 192.168.0.207 >> ~/.ssh/known_hosts"
+        - "ssh-keyscan 192.168.0.244 >> ~/.ssh/known_hosts"
+
+# ansible-playbook keyscan.yml
+# ansible all -m ping -k
+```
+- KeyPair 등록 - 위와같은 상황일 때 사용
+```
+# vi keypair_new.yml
+- name: Create known_hosts between server and nodes
+  hosts: all # 인벤토리 안의 모든 hosts 불러오기
+  connection: local
+  serial: 1 # 하나씩만 순차적으로 가져오기 / 누락 발생할 수 있음
+  gather_facts: no
+
+  tasks:
+    - name: ssh-keyscan for known_hosts file
+      command: /usr/bin/ssh-keyscan -t ecdsa {{ ansible_host }} # 매직 변수 ansible_host 활용하여 hosts ip 호출
+      register: keyscan
+
+    - name: input key
+      lineinfile:
+        path: ~/.ssh/known_hosts
+        line: "{{ item }}"
+        create: yes
+      with_items:
+        - "{{ keyscan.stdout_lines }}"
+
+- name: Create authorized_keys between server and nodes
+  hosts: all
+  connection: local
+  gather_facts: no
+  vars:
+    ansible_password: kosa0401
+
+  tasks:
+    - name: ssh-keygen for authorized_keys file
+      openssh_keypair: 
+        path: ~/.ssh/id_rsa
+        size: 2048
+        type: rsa
+        force: False 
+        # overwrite하지 않는다는 False라고 값을 넣거나 아니면 삭제
+
+    - name: input key for each node
+      connection: ssh
+      authorized_key:
+        user: root
+        state: present
+        key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+
+# anp keypair.yml
+```
+- 환경 설정 등록 hosts file & Alias 등록
+```
+# vi ansible_env.yml
+- name: Setup for the Ansible's Environment
+  hosts: localhost
+  gather_facts: no
+  
+  tasks:
+    - name: Add "/etc/ansible/hosts"
+      blockinfile: 
+        path: /etc/ansible/hosts
+        block: |
+          [centos]
+          192.168.0.235
+          192.168.0.237
+
+          [ubuntu]
+          192.168.0.207 ansible_python_interpreter=/usr/bin/python3
+          192.168.0.244 ansible_python_interpreter=/usr/bin/python3
+
+    - name: Configure Bashrc
+      lineinfile:   
+        path: /root/.bashrc
+        line: "{{ item }}"
+      with_items:
+        - "alias ans='ansible'"
+        - "alias anp='ansible-playbook'"
+
+# ansible-playbook ansible_env.yml -k
+# Session 재접속
+```
+
+### Ansible Playbook apache Install
+```
+# vi apache_install.yml
+- name: Install apache on centos
+  hosts: centos
+  gather_facts: no
+
+  tasks:
+    - name: install apache web server
+      yum: name=httpd state=present
+    - name: upload default index.html for web server
+      get_url: url=https://www.nginx.com dest=/var/www/html/ mode=0644
+    - name: start apache web server
+      service: name=httpd state=started
+    - name: enable apache web server
+      service: name=httpd enabled=yes
+
+- name: Install apache on ubuntu
+  hosts: ubuntu
+  gather_facts: no
+
+  tasks:
+    - name: install apache web server
+      apt: name=apache2 state=present
+    - name: upload default index.html for web server
+      get_url: url=https://www.nginx.com dest=/var/www/html/ mode=0644
+    - name: start apache web server
+      service: name=apache2 state=started
+
+# ansible-playbook apache_install.yml -k
+```
+
+### Ansible Playbook apache Remove
+```
+# vi apache_remove.yml
+- name: Remove apache on centos
+  hosts: centos
+  gather_facts: no
+
+  tasks:
+    - name: remove apache web server
+      yum: name=httpd state=absent
+
+- name: Remove apache on ubuntu
+  hosts: ubuntu
+  gather_facts: no
+
+  tasks:
+    - name: remove apache web server
+      apt: name=apache2 state=absent
+
+# ansible-playbook apache_remove.yml -k
+```
+
+### Ansible Playbook nginx Install
+```
+# vi nginx_install.yml
+- name: Install nginx on centos
+  hosts: centos
+  gather_facts: no
+
+  tasks:
+    - name: install epel-release
+      yum: 
+        name: epel-release
+        state: latest
+    - name: install nginx web server
+      yum: name=nginx state=present
+    - name: upload default index.html for web server
+      get_url: url=https://www.nginx.com dest=/usr/share/nginx/html/ mode=0644
+    - name: start nginx web server
+      service: name=nginx state=started
+
+- name: Install nginx on ubuntu
+  hosts: ubuntu
+  gather_facts: no
+
+  tasks:
+    - name: install nginx web server
+      apt: pkg=nginx state=present update_cache=yes
+    - name: Upload default index.html for web server
+      get_url: url=https://www.nginx.com dest=/var/www/html/
+               mode=0644 validate_certs=no
+
+# ansible-playbook nginx_install.yml
+```
+
+### Ansible Playbook nginx Remove
+```
+# vi nginx_remove.yml
+- name: Remove nginx on centos
+  hosts: centos
+  gather_facts: no
+
+  tasks:
+    - name: remove nginx web server
+      yum: 
+        name: nginx 
+        state: absent
+
+- name: Remove nginx on ubuntu
+  hosts: ubuntu
+  gather_facts: no
+
+  tasks:
+    - name: remove nginx web server
+      apt: 
+       pkg: nginx* 
+       state: absent
+
+# ansible-playbook nginx_remove.yml
+```
+
+### Ansible Playbook NFS Install
+```
+# vi nfs.yml
+- name: Setup for nfs server
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: make nfs_shared directory
+      file:
+        path: /root/nfs_shared
+        state: directory
+        mode: 0777
+
+    - name: configure /etc/exports
+      lineinfile:
+        path: /etc/exports
+        line: /root/nfs_shared 192.168.0.0/20(rw,sync)
+
+    - name: Install NFS
+      yum:
+        name: nfs-utils
+        state: present
+
+    - name: nfs service start
+      service:
+        name: nfs-server
+        state: restarted
+        enabled: yes
+
+- name: Setup for nfs clients CentOS
+  hosts: centos
+  gather_facts: no
+
+  tasks:
+    - name: make nfs_client directory
+      file:
+        path: /root/nfs
+        state: directory
+
+    - name: Install NFS
+      yum:
+        name: nfs-utils
+        state: present
+
+    - name: mount point directory as client
+      mount:
+        path: /root/nfs
+        src: 192.168.0.180:/root/nfs_shared #Ansible-Server ip
+        fstype: nfs
+        state: mounted
+
+- name: Setup for nfs clients Ubuntu
+  hosts: ubuntu
+  gather_facts: no
+
+  tasks:
+    - name: make nfs_client directory
+      file:
+        path: /root/nfs
+        state: directory
+
+    - name: Install NFS
+      apt:
+        pkg: nfs-common
+        state: present
+        update_cache: yes
+
+    - name: mount point directory as client
+      mount:
+        path: /root/nfs
+        src: 192.168.0.180:/root/nfs_shared
+        fstype: nfs
+        opts: nfsvers=3
+        state: mounted
+
+# ansible-playbook nfs.yml 
+```
+
+### Ansible Playbook Wordpress 
+```
+# vi wordpress.yml
+- name: Setup for webserver
+  hosts: webserver
+  gather_facts: no
+
+  tasks:
+    - name: Install http
+      yum:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - httpd
+        - php
+        - php-mysql
+        - php-gd
+        - php-mbstring
+        - wget
+        - unzip
+
+    - name: Unarchive a file that needs to be downloaded (added in 2.0)
+      ansible.builtin.unarchive:
+        src: https://ko.wordpress.org/wordpress-4.8.2-ko_KR.zip
+        dest: /var/www/html
+        remote_src: yes
+
+    - name: chown
+      file:
+        path: /var/www/html/wordpress
+        owner: "apache"
+        group: "apache"
+        recurse: "yes"
+
+    - name: web service restart
+      service:
+        name: httpd
+        state: restarted
+
+- name: Setup for dbserver
+  hosts: dbserver
+  gather_facts: no
+
+  tasks:
+    - name: Install mariadb
+      apt:
+        pkg: mariadb-server
+        state: present
+        update_cache: yes
+
+    - name: Install pymysql
+      apt:
+        pkg: python-pymysql
+        state: present
+
+    - name: Install pymysql
+      apt:
+        pkg: python3-pymysql
+        state: present
+
+    - name: set root password
+      mysql_user:
+        name: 'root'
+        password: '{{ mysql_root_password }}'
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        state: present
+
+    - name: edit file
+      replace:
+        path: /etc/mysql/mariadb.conf.d/50-server.cnf
+        regexp: "bind-address"
+        replace: "#bind-address"
+
+    - name: db service restart
+      service:
+        name: mysql
+        state: restarted
+
+    - name: Create database
+      mysql_db:
+        db: wordpress
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        state: present
+
+    - name: Create database user
+      mysql_user:
+        user: wpuser
+        password: wppass
+        priv: "wordpress.*:ALL,GRANT"
+        host: '%'
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        state: present
+
+# anp wordpress.yml --extra-vars "mysql_root_password=kosa0401"
+```
