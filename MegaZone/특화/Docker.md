@@ -119,6 +119,11 @@ $ sudo apt install docker-ce -y
 # chown -R apache:apache /var/www/*
 # httpd &
 ```
+## Docker hub
+```
+# docker login
+# docker logout
+```
 
 ## Docker File
 ### 개념
@@ -127,4 +132,157 @@ $ sudo apt install docker-ce -y
 - Docker File 작성시 폴더 하나 만들어서 작성 / vi Dockerfile (D는 대문자)
 - Docker file 명령어
 ![docker](docker.png)
-- ADD 는 압축 해제 가능
+- ADD 는 tar만 압축 해제 가능
+
+### Docker File Create
+- vm 에 apache 웹서버 깔아서 배포
+```
+# vi Dockerfile
+FROM ubuntu:18.04
+MAINTAINER seojun
+LABEL "name"="webserver"
+ENV aloha=date
+ENV path=/var/www/html
+RUN sed -i 's/archive.ubuntu.com/ftp.daumkakao.com/g' /etc/apt/sources.list
+RUN apt-get update
+RUN apt-get install apache2 -y
+COPY nihao /var/www/html/nihao
+COPY hello.html $path
+ADD aws.tar /var/www/html
+WORKDIR /var/www/html #cd, exec -it로 들어갔을 때 디렉토리 설정
+RUN echo ohayo >> ohayo.html
+VOLUME /var/www/html # -v /tmp:/var/www/html
+EXPOSE 80 # container port -p 8888:80, -p 8080:80
+ENTRYPOINT ["apachectl"] # ["apachectl", "-D","FOREGROUD"]
+CMD ["-D", "FOREGROUND"] # apachectl -DFOREGROUD
+
+# docker build -t jigreg/hello:v1.0 .
+# docker images
+# docker push jigreg/hello:v1.0
+# docker run -itd -P --name hello jigreg/hello:v1.0
+```
+- 웹서버로만 배포
+```
+# mkdir test && cd $_
+# tar cvf test.tar images index.html 
+# vi Dockerfile
+FROM nginx:latest
+ADD test.tar /usr/share/nginx/html
+CMD ["nginx", "-g", "daemon off;"]
+# docker build -t jigreg/homepage:v1.0 .
+# docker run -itd -p:234:80 --name homepage jigreg/homepage:v1.0
+```
+- Wordpress 설치
+```
+# mkdir wordpress && cd $_
+# vi Dockerfile
+FROM centos:7
+MAINTAINER seojun@example.com
+RUN yum install -y httpd php php-mysql php-gd php-mbstring wget unzip
+RUN wget https://ko.wordpress.org/wordpress-4.8.2-ko_KR.zip
+WORKDIR /var/www/html
+RUN unzip /wordpress-4.8.2-ko_KR.zip
+RUN mv /wordpress/* .
+RUN chown -R apache:apache /var/www/*
+CMD httpd -DFOREGROUND
+# docker build -t wordpress:v1.0 .
+# docker push jigreg/wordpress:v1.0
+# docker run -d -p 88:80 --name wordpress --network test_bridge wordpress:v1.0 
+```
+- build -> push -> run 꼭 기억할 것!
+
+## Docker Data 
+- Bind Mount
+```
+# mkdir volume && cd $_
+# mkdir bm01 ; touch bm01/test.txt
+# docker container run -itd --name bm-test -v ~/volume/bm01:/mnt centos:7
+# docker container exec bm-test ls /mnt
+```
+- Volume
+```
+# docker volume create my-vol01
+# docker volume list
+# docker volume inspect my-vol01
+"Mountpoint": "/var/lib/docker/volumes/my-vol01/_data"
+# docker container run -itd --name vol-test -v my-vol01:/mnt centos:7
+# docker container run -itd -p 81:80 --name vol-web -v my-vol01:/usr/local/apache2/htdocs:ro httpd:latest
+# curl 192.168.0.88:801
+<html><body><h1>It works!</h1></body></html>
+# docker container exec vol-test sh -c "echo "Nihao" > /mnt/index.html"
+# curl 192.168.0.88:801
+Nihao
+```
+## Docker 네트워크 관리
+```
+# docker network list
+# docker network inspect bridge
+"com.docker.network.bridge.name": "docker0",
+# docker network create new-net --subnet 172.31.0.0/16 --ip-range 172.31.0.0/20 --gateway 172.31.0.1
+# docker network list
+```
+
+## onbuild 명령어 활용
+
+### 운영자 역할
+```
+# mkdir onbuild && cd $_
+# vi Dockerfile.base
+FROM ubuntu:18.04
+RUN sed -i 's/archive.ubuntu.com/ftp.daumkakao.com/g' /etc/apt/sources.list
+RUN apt-get -y update
+RUN apt-get -y install nginx
+EXPOSE 80
+ONBUILD ADD website*.tar /var/www/html/
+CMD ["nginx", "-g", "daemon off;"]
+
+# docker build -t jigreg/web-base:v1.0 -f Dockerfile.base .
+# docker login
+# docker push jigreg/web-base:v1.0
+# vi Dockerfile
+FROM jigreg/web-base:v1.0
+```
+
+### 개발자 역할
+```
+# mkdir onbuild && cd $_
+# ls
+website.tar
+Dockerfile
+
+# docker build -t jigreg/web-site:v1.0 .
+# docker run -d -p 80:80 --name=website jigreg/web-site:v1.0
+# docker login
+# docker push jigreg/web-site:v1.0
+```
+
+### 운영자 역할(AWS)
+```
+# docker run -d -p 80:80 --name=test-site jigreg/web-site:v1.0
+```
+
+### AWS EC2에 Docker 설치
+- sudo usermod -a -G docker ec2-user
+- 앞에 sudo를 붙이지 않아도 docker 명령어 실행할 수 있도록 해줌
+- docker라는 그룹에 ec2-user 추가
+```
+사용자 데이터
+#!/bin/bash
+sudo amazon-linux-extras install docker -y
+sudo systemctl start docker && systemctl enable docker
+curl https://raw.githubusercontent.com/docker/docker-ce/master/components/cli/contrib/completion/bash/docker -o /etc/bash_completion.d/docker.sh
+sudo usermod -a -G docker ec2-user
+```
+
+### 도커 사설 레지스트리
+- restart always => 가상머신이 꺼졌다가 켜져도 항상 실행
+- registry 포트는 5000:5000 으로 정해져 있음
+```
+# docker run -d -p 5000:5000 --restart=always --name private-docker-registry registry # 저장소 서버
+# vi /etc/docker/daemon.json # 클라이언트
+{ "insecure-registries":["docker.seojun.shop:5000"] }
+# systemctl restart docker
+# docker tag jigreg/hompage:v1.0 docker.seojun.shop:5000/homepage:v1.0
+# docker push docker.seojun.shop:5000/homepage:v1.0
+# docker run -dp 8888:80 --name private test docker.seojun.shop:5000/homepage:v1.0
+```
