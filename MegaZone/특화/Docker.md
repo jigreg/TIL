@@ -1,6 +1,7 @@
 # Docker
 
 ## 개념
+
 - 컨테이너형 가상화 기술 => 운영체제 수준 가상화
 - 컨테이너란 호스트 OS상에 논리적인 구획을 만들고, 애플리케이션을 작동시키기 위해 필요한 라이브러리나 애플리케이션 을 하나로 모아, 별도의 서버인 것처럼 사용할 수 있게 만드는 것
 - 가볍고 고속으로 작동
@@ -14,12 +15,14 @@
   - Docker 컨테이너 : 이미지 기반으로 생성, 파일 시스템과 애플리케이션 구체화 되어 실행
 
 ## Docker 가상머신
+
 - VM Spec
   - OS : CentOS 7
   - CPU : 2Core
   - RAM : 4GB
 
 ## Docker(Docker CE; Community Edition) CentOS Install
+
 ```
 # curl -fsSL https://get.docker.com/ | sh
 # yum -y install bash-completion wget unzip net-tools mysql telnet rdate
@@ -29,6 +32,7 @@
 ```
 
 ## Docker(Docker CE; Community Edition) Ubuntu Install
+
 ```
 $ sudo apt update
 $ sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
@@ -40,6 +44,7 @@ $ sudo apt install docker-ce -y
 ```
 
 ## Docker 기본 명령어
+
 ```
 # docker search nginx
 # docker image pull nginx
@@ -60,7 +65,7 @@ $ sudo apt install docker-ce -y
 # docker container run -d -p 8080:80 --name test_port nginx # 중요!!!
 # docker container stats nginx
 # docker container run -d -p 8181:80 --cpus 1 --memory=256m --name test_resource nginx
-# docker container run -d -p 8282:80 --cpus 1 --memory=256m -v /tmp:/usr/share/nginx/html --name volume-container nginx 
+# docker container run -d -p 8282:80 --cpus 1 --memory=256m -v /tmp:/usr/share/nginx/html --name volume-container nginx
 # docker container ls
 # docker container ls -a
 # docker container ls -a -f name=test_webserver
@@ -81,7 +86,7 @@ $ sudo apt install docker-ce -y
 # docker image ls
 # docker image inspect test_commit:v1.0
 # docker image save -o test_commit.tar test_commit:v1.0
-# scp test_commit.tar root@192.168.0.207:/root 
+# scp test_commit.tar root@192.168.0.207:/root
 # docker image load -i test_commit.tar
 # docker image ls
 # docker images # ls와 같은 명령어
@@ -99,7 +104,9 @@ $ sudo apt install docker-ce -y
 ```
 
 ## Wordpress
+
 ### dbserver
+
 ```
 # docker run -d -p 3306:3306 --name dbserver \
 -e MYSQL_DATABASE=wordpress \
@@ -107,7 +114,9 @@ $ sudo apt install docker-ce -y
 -e MYSQL_PASSWORD=wppass \
 -e MYSQL_ROOT_PASSWORD=password --network test_bridge mariadb
 ```
+
 ### webserver
+
 ```
 # docker run -it -d -p 8888:80 --name apache --network test_bridge centos:7
 # docker exec -it apache bash
@@ -119,23 +128,29 @@ $ sudo apt install docker-ce -y
 # chown -R apache:apache /var/www/*
 # httpd &
 ```
+
 ## Docker hub
+
 ```
 # docker login
 # docker logout
 ```
 
 ## Docker File
+
 ### 개념
+
 - 컨테이너를 생성하는 여러 구성 정보를 하나의 파일로 정리
 - 일괄 실행하여 docker build 명령을 통해 Docker 이미지를 작성하는 스크립트
 - Docker File 작성시 폴더 하나 만들어서 작성 / vi Dockerfile (D는 대문자)
 - Docker file 명령어
-![docker](docker.png)
+  ![docker](docker.png)
 - ADD 는 tar만 압축 해제 가능
 
 ### Docker File Create
+
 - vm 에 apache 웹서버 깔아서 배포
+
 ```
 # vi Dockerfile
 FROM ubuntu:18.04
@@ -161,10 +176,12 @@ CMD ["-D", "FOREGROUND"] # apachectl -DFOREGROUD
 # docker push jigreg/hello:v1.0
 # docker run -itd -P --name hello jigreg/hello:v1.0
 ```
+
 - 웹서버로만 배포
+
 ```
 # mkdir test && cd $_
-# tar cvf test.tar images index.html 
+# tar cvf test.tar images index.html
 # vi Dockerfile
 FROM nginx:latest
 ADD test.tar /usr/share/nginx/html
@@ -172,7 +189,9 @@ CMD ["nginx", "-g", "daemon off;"]
 # docker build -t jigreg/homepage:v1.0 .
 # docker run -itd -p:234:80 --name homepage jigreg/homepage:v1.0
 ```
+
 - Wordpress 설치
+
 ```
 # mkdir wordpress && cd $_
 # vi Dockerfile
@@ -187,19 +206,24 @@ RUN chown -R apache:apache /var/www/*
 CMD httpd -DFOREGROUND
 # docker build -t wordpress:v1.0 .
 # docker push jigreg/wordpress:v1.0
-# docker run -d -p 88:80 --name wordpress --network test_bridge wordpress:v1.0 
+# docker run -d -p 88:80 --name wordpress --network test_bridge wordpress:v1.0
 ```
+
 - build -> push -> run 꼭 기억할 것!
 
-## Docker Data 
+## Docker Data
+
 - Bind Mount
+
 ```
 # mkdir volume && cd $_
 # mkdir bm01 ; touch bm01/test.txt
 # docker container run -itd --name bm-test -v ~/volume/bm01:/mnt centos:7
 # docker container exec bm-test ls /mnt
 ```
+
 - Volume
+
 ```
 # docker volume create my-vol01
 # docker volume list
@@ -213,7 +237,9 @@ CMD httpd -DFOREGROUND
 # curl 192.168.0.88:801
 Nihao
 ```
+
 ## Docker 네트워크 관리
+
 ```
 # docker network list
 # docker network inspect bridge
@@ -225,6 +251,7 @@ Nihao
 ## onbuild 명령어 활용
 
 ### 운영자 역할
+
 ```
 # mkdir onbuild && cd $_
 # vi Dockerfile.base
@@ -244,6 +271,7 @@ FROM jigreg/web-base:v1.0
 ```
 
 ### 개발자 역할
+
 ```
 # mkdir onbuild && cd $_
 # ls
@@ -257,14 +285,17 @@ Dockerfile
 ```
 
 ### 운영자 역할(AWS)
+
 ```
 # docker run -d -p 80:80 --name=test-site jigreg/web-site:v1.0
 ```
 
 ### AWS EC2에 Docker 설치
+
 - sudo usermod -a -G docker ec2-user
 - 앞에 sudo를 붙이지 않아도 docker 명령어 실행할 수 있도록 해줌
 - docker라는 그룹에 ec2-user 추가
+
 ```
 사용자 데이터
 #!/bin/bash
@@ -274,9 +305,11 @@ curl https://raw.githubusercontent.com/docker/docker-ce/master/components/cli/co
 sudo usermod -a -G docker ec2-user
 ```
 
-### 도커 사설 레지스트리
+### Docker 사설 레지스트리
+
 - restart always => 가상머신이 꺼졌다가 켜져도 항상 실행
 - registry 포트는 5000:5000 으로 정해져 있음
+
 ```
 # docker run -d -p 5000:5000 --restart=always --name private-docker-registry registry # 저장소 서버
 # vi /etc/docker/daemon.json # 클라이언트
