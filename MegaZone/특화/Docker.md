@@ -144,7 +144,9 @@ $ sudo apt install docker-ce -y
 - 일괄 실행하여 docker build 명령을 통해 Docker 이미지를 작성하는 스크립트
 - Docker File 작성시 폴더 하나 만들어서 작성 / vi Dockerfile (D는 대문자)
 - Docker file 명령어
-  ![docker](docker.png)
+
+  ![](docker.png)
+
 - ADD 는 tar만 압축 해제 가능
 
 ### Docker File Create
@@ -303,6 +305,8 @@ sudo amazon-linux-extras install docker -y
 sudo systemctl start docker && systemctl enable docker
 curl https://raw.githubusercontent.com/docker/docker-ce/master/components/cli/contrib/completion/bash/docker -o /etc/bash_completion.d/docker.sh
 sudo usermod -a -G docker ec2-user
+docker run -itd -p 80:80 --name test-site jigreg/web-site:v2.0
+docker run -d -p 5000:5000 --restart=always --name private-docker-registry registry
 ```
 
 ### Docker 사설 레지스트리
@@ -318,4 +322,145 @@ sudo usermod -a -G docker ec2-user
 # docker tag jigreg/hompage:v1.0 docker.seojun.shop:5000/homepage:v1.0
 # docker push docker.seojun.shop:5000/homepage:v1.0
 # docker run -dp 8888:80 --name private test docker.seojun.shop:5000/homepage:v1.0
+```
+
+## Docker Compose
+
+### 개념
+
+- Compose는 다중 컨테이너 Docker 애플리케이션을 정의하고 실행하기 위한 도구
+- Yaml 파일을 사용하여 애플리케이션 서비스 구성
+- 프로덕션, 스테이징, 개발, 테스트, CI 워크플로등 모든 환경에서 작동
+- 3 단계 프로세스
+  1. Dockerfile 어디서나 재현할 수 있도록 앱의 환경 정의
+  2. 앱을 구성하는 서비스를 정의하기 위해 docker-compose.yml 형식의 스크립트로 격리된 환경에서 실행
+  3. docker compose up 하면 Docker compose 명령이 전체 앱을 시작하고 실행, docker-compose updocker-compose 바이너리를 사용하여 실행
+
+### Docker compose Install
+
+```
+# curl -L "https://github.com/docker/compose/releases/download/1.26.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+# chmod +x /usr/local/bin/docker-compose
+# mkdir my_wordpress && cd $_
+# vi docker-compose.yml
+version: "3.3"
+services:
+  dbserver:
+    image: mysql:5.7
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wpuser
+      MYSQL_PASSWORD: wppass
+  wordpress:
+    depends_on:
+      - dbserver
+    image: wordpress:latest
+    volumes:
+      - wordpress_data:/var/www/html
+    ports:
+      - "80:80"
+    restart: always
+    environment:
+      WORDPRESS_DB_HOST: dbserver:3306
+      WORDPRESS_DB_USER: wpuser
+      WORDPRESS_DB_PASSWORD: wppass
+      WORDPRESS_DB_NAME: wordpress
+volumes:
+  db_data: {}
+  wordpress_data: {}
+
+# docker-compose up -d
+# docker-compose ps
+# docker-compose pause
+# docker-compose unpause
+# docker-compose port wordpress 80
+# docker-compose config
+# docker-compose stop wordpress
+# docker-compose rm wordpress
+# docker-compose down
+# docker-compose down -v # volume 파일 삭제
+# docker-compose down --rmi all
+
+```
+
+## Docker Container Monitoring - cAdvisor
+
+```
+VERSION=v0.44.0 # use the latest release version from https://github.com/google/cadvisor/releases
+docker run \
+  --volume=/:/rootfs:ro \
+  --volume=/var/run:/var/run:ro \
+  --volume=/sys:/sys:ro \
+  --volume=/var/lib/docker/:/var/lib/docker:ro \
+  --volume=/dev/disk/:/dev/disk:ro \
+  --publish=8080:8080 \
+  --detach=true \
+  --name=cadvisor \
+  --privileged \
+  --device=/dev/kmsg \
+  gcr.io/cadvisor/cadvisor:$VERSION
+```
+
+## Docker Swarm(스웜)
+
+### 개념
+
+- Docker 엔진 클러스터를 기본적으로 관리하기 위한 스웜 모드
+- Docker CLI를 사용하여 스웜을 만들고, 스웜에 애플리케이션 서비스를 배포하고, 스웜 동작을 관리
+- 기능
+  - Docker 엔진과 통합된 클러스터 관리
+  - 분산된 디자인
+  - 원하는 상태 조정
+
+![](docker-swarm.png)
+
+### Docker swarm launch
+
+```
+# hostnamectl set-hostname master1
+
+# cat <<EOF >> /etc/hosts
+192.168.1.123 manager1
+192.168.1.157 worker1
+192.168.1.158 worker2
+EOF
+
+# docker swarm init --advertise-addr 192.168.1.123
+# docker swarm join --token SWMTKN-1-13b5eb7x1uiqt1je8zynapwxjxagj05p84fi44cy9jvztqui8r-d2oxinkyz3aa73bepuwe2abp1 192.168.1.123:2377
+# docker node ls
+# docker service create --name my_web --replicas 3 --publish published=8080,target=80 nginx
+# docker service ls
+# docker service ps my_web
+# docker service logs my_web
+# docker service inspect --pretty my_web
+# docker service scale my_web=5
+# docker service ps my_web
+# docker service rm my_web
+```
+
+### Docker rolling update
+
+```
+# docker service ps my_web
+# docker service inspect --pretty my_web
+# docker service update --image jigreg/web-site:v1.0 my_web
+# docker service ps my_web
+# docker service rollback my_web # 업데이트한 사이트 롤백시키기
+```
+
+### Docker Cluster Node Drain
+
+```
+# docker node ls
+# docker service ps my_web
+# docker node update --availability drain worker1
+# docker node inspect --pretty worker1
+# docker service ps my_web
+# docker node update --availability active worker1
+# docker node inspect --pretty worker1
+# docker node ls
 ```
