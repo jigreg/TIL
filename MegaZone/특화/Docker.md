@@ -464,3 +464,50 @@ EOF
 # docker node inspect --pretty worker1
 # docker node ls
 ```
+
+### AWS ECS
+
+- 작업 정의 생성
+  - EC2
+  - 테스크 정의 이름 : MY-TD
+- 컨테이너 정의
+  - 컨테이너 추가
+    - 컨테이너 이름 : webserver
+    - 이미지 : nginx
+    - 메모리 제한 : 하드제한 / 128MB
+    - 포트 매핑 : 80 : 80
+- 클러스터 만들기
+  - 탬플릿 선택
+    - EC2 Linux + 네트워킹
+  - 클러스터 구성
+    - 이름 : MY-CLUSTER
+    - 인스턴스 구성 : 프로비저닝 모델- 온 디멘드
+      - EC2 인스턴스 유형 : t2.micro
+      - 인스턴스 개수 : 2
+      - EC2 AMI : Amazon Linux 2
+      - 루트 EBS 볼륨 크기 : 30
+      - 키페어 : docker-key
+      - 네트워크 : MY-VPC
+      - 서브넷 : MY-Public-Subnet 2A, 2C
+      - 퍼블릭 IP 자동 할당 : 활성화
+      - 보안그룹 : SG-WEB
+- 클러스터 보기
+- 서비스 생성
+  - 서비스 구성
+    - EC2
+  - 서비스 이름
+    - MY-WEB
+  - 서비스 유형
+    - REPLICA
+  - 작업 개수 : 2
+  - 최소 정상 상태 백분율 : 50
+  - 최대 백분율 : 100
+  - 배포 유형 : 롤링 업데이트
+  - 로드 밸런싱 : Application Load Balancer
+    - 상태 검사 유예 기간 : 150
+    - 로드밸런서 생성 : ECS-ALB
+    - 로드밸런싱할 컨테이너
+      - 프로덕션 리스너 포트 : 80:HTTP
+      - 대상 그룹 이름 : TG-ECS
+  - Auto Scaling
+    - 최소 작업 개수, 원하는 개수, 최대 개수 : 2/2/4
