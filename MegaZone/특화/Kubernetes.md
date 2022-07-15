@@ -15,7 +15,7 @@
 - 컨트롤 플레인 컴포넌트는 클러스터에 관한 전반적인 결정(ex 스케쥴링)을 수행하고 클러스터 이벤트(ex `deployment`의 replicas 필드에 대한 요구조건이 충족되지 않을 경우 새로운 pod를 구동시키는 것)을 감지하고 반응
 - 클러스터 내 어떠한 머신에서든지 동작
 - 간결성을 위하여 구성 스크립트는 보통 동일 머신 상에 모든 컨트롤 플레인 컴포넌트를 구동시키고, 사용자 컨테이너는 해당 머신 상에 동작 X
-- 고가용성 클러스 구성
+- 고가용성 클러스터 구성
 
 ### kube-apiserver
 
@@ -34,7 +34,7 @@
 ### kube-scheduler
 
 - 노드가 배정되지 않은 새로 생성된 pod 감지하고, 실행할 노드를 선택하는 컨트롤 플레인 컴포넌트(주로 메모리)
-- 스케쥴링 결정을 위해서 고려되는 요소는 리소에 대한 개별 및 총체적 요구 사항
+- 스케쥴링 결정을 위해서 고려되는 요소는 리소스에 대한 개별 및 총체적 요구 사항
 
 ### kube-controller-manager
 
@@ -50,7 +50,7 @@
 
 - 클라우드별 컨트롤 로직을 포함하는 쿠버네티스 컨트롤 플레인 컴포넌트
 - 클라우드 컨트롤러 매니저를 통해 클러스터를 클라우드 공급자의 API에 연결
-- 해당 클라우드 플랫폼과 상호 작용하는 컴포넌트와 클러스와 상호 작용하는 컴포넌트를 분리
+- 해당 클라우드 플랫폼과 상호 작용하는 컴포넌트와 클러스터와 상호 작용하는 컴포넌트를 분리
 
 ### kubelet - Worker node 구성 요소
 
@@ -203,4 +203,33 @@ spec:
 # kubectl apply -f loadbalancer-pod.yaml
 # kubectl get svc -o wide
 # kubectl describe svc loadbalancer-service-pod
+```
+
+```
+# vi replicaset.yaml
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: nginx-replicaset
+spec:
+  replicas: 3 # desired state (kube-controller-manager)
+  selector:
+    matchLabels:
+      app: nginx-replicaset
+
+  template:
+    metadata:
+      name: nginx-replicaset
+      labels:
+        app: nginx-replicaset
+    spec:
+      containers:
+      - name: nginx-replicaset-container
+        image: nginx
+        ports:
+        - containerPort: 80
+
+# kubectl apply -f replicaset.yaml
+# kubectl get replicasets.apps -o wide
+# kubectl describe replicasets.apps nginx-replicaset
 ```
