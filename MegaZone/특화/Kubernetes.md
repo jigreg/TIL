@@ -233,3 +233,64 @@ spec:
 # kubectl get replicasets.apps -o wide
 # kubectl describe replicasets.apps nginx-replicaset
 ```
+
+```
+# vi clusterip-replicaset.yaml # 클러스터아이피 야믈
+apiVersion: v1
+kind: Service
+metadata:
+  name: clusterip-service-replicaset
+spec:
+  type: ClusterIP
+  selector:
+    app: nginx-replicaset
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+
+# kubectl apply -f clusterip-replicaset.yaml
+# kubectl get svc -o wide
+# kubectl describe svc clusterip-service-replicaset
+```
+
+```
+# vi nodeport-replicaset.yaml # 노드포트 야믈
+apiVersion: v1
+kind: Service
+metadata:
+  name: nodeport-service-replicaset
+spec:
+  type: NodePort
+  selector:
+    app: nginx-replicaset
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+    nodePort: 30080
+
+# kubectl apply -f nodeport-replicaset.yaml
+# kubectl get svc -o wide
+# kubectl describe svc nodeport-service-replicaset
+
+# vi loadbalancer-replicaset.yaml # 로드밸런서 야믈
+apiVersion: v1
+kind: Service
+metadata:
+  name: loadbalancer-service-replicaset
+spec:
+  type: LoadBalancer
+  externalIPs:
+    - 172.25.0.137
+  selector:
+    app: nginx-replicaset
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+
+# kubectl apply -f loadbalancer-replicaset.yaml
+# kubectl get svc -o wide
+# kubectl describe svc loadbalancer-service-replicaset
+```
