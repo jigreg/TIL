@@ -322,6 +322,9 @@ docker run -d -p 5000:5000 --restart=always --name private-docker-registry regis
 # docker tag jigreg/hompage:v1.0 docker.seojun.shop:5000/homepage:v1.0
 # docker push docker.seojun.shop:5000/homepage:v1.0
 # docker run -dp 8888:80 --name private test docker.seojun.shop:5000/homepage:v1.0
+# 사설레지스트리에 업로드 된 것 확인
+# curl localhost:5000/v2/_catalog
+# curl localhost:5000/v2/nginx/tags/list
 ```
 
 ## Docker Compose

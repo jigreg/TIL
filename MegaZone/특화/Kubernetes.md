@@ -106,6 +106,87 @@
 # kubectl get nodes
 ```
 
+### Multi Node 설치
+
+#### All Node(공통 설치)
+
+```
+# cat <<EOF >> /etc/hosts
+192.168.1.186 master1
+192.168.1.193 worker1
+192.168.1.194 worker2
+EOF
+
+# hostnamectl set-hostname master
+# curl https://download.docker.com/linux/centos/docker-ce.repo -o /etc/yum.repos.d/docker-ce.repo
+# sed -i -e "s/enabled=1/enabled=0/g" /etc/yum.repos.d/docker-ce.repo
+# yum --enablerepo=docker-ce-stable -y install docker-ce-19.03.15-3.el7
+# cat <<EOF | sudo tee /etc/docker/daemon.json
+{
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m"
+  },
+  "storage-driver": "overlay2"
+}
+EOF
+# systemctl enable --now docker
+# systemctl daemon-reload
+# systemctl restart docker
+# systemctl disable --now firewalld
+# setenforce 0
+# sed -i 's/^SELINUX=enforcing$/SELINUX=disabled/' /etc/selinux/config
+
+# swapoff -a
+# sed -i '/ swap / s/^/#/' /etc/fstab
+
+# cat <<EOF > /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+
+# sysctl --system # 커널에 적용
+# reboot
+
+# cat <<'EOF' > /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-$basearch
+enabled=1
+gpgcheck=0
+repo_gpgcheck=0
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+EOF
+
+# yum -y install kubeadm-1.19.16-0 kubelet-1.19.16-0 kubectl-1.19.16-0 --disableexcludes=kubernetes
+# systemctl enable kubelet
+```
+
+#### Master
+
+```
+# kubeadm init --apiserver-advertise-address=192.168.1.186 --pod-network-cidr=10.244.0.0/16
+# mkdir -p $HOME/.kube
+# cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+# chown $(id -u):$(id -g) $HOME/.kube/config
+# kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
+
+# kubectl get pods --all-namespaces
+# source <(kubectl completion bash)
+# echo "source <(kubectl completion bash)" >> ~/.bashrc
+# exit
+```
+
+#### Node
+
+```
+# kubeadm join 192.168.1.186:6443 --token igshg8.21uni3daumxd3i3m \
+    --discovery-token-ca-cert-hash sha256:efa1953021daeadd04b92b676933f264040b450f2b6b7c4c63e84c99e18af424
+# kubectl get nodes
+
+```
+
 ### Pod
 
 ```
@@ -212,7 +293,7 @@ kind: ReplicaSet
 metadata:
   name: nginx-replicaset
 spec:
-  replicas: 3 # desired state (kube-controller-manager)
+  replicas: 3 # desired state (kube-controller-manager) 선언적 API, 자가치유
   selector:
     matchLabels:
       app: nginx-replicaset
@@ -293,4 +374,328 @@ spec:
 # kubectl apply -f loadbalancer-replicaset.yaml
 # kubectl get svc -o wide
 # kubectl describe svc loadbalancer-service-replicaset
+```
+
+### Deployment
+
+```
+# vi deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx-deployment
+  template:
+    metadata:
+      name: nginx-deployment
+      labels:
+        app: nginx-deployment
+    spec:
+      containers:
+      - name: nginx-deployment-container
+        image: nginx
+        ports:
+        - containerPort: 80
+
+# kubectl apply -f deployment.yaml
+# kubectl get deployments.apps -o wide
+# kubectl describe deployments.apps nginx-deployment
+
+# vi clusterip-deployment.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: clusterip-service-deployment
+spec:
+  type: ClusterIP
+  selector:
+    app: nginx-deployment
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+
+# kubectl apply -f clusterip-deployment.yaml
+# kubectl get svc -o wide
+# kubectl describe svc clusterip-service-deployment
+
+# vi nodeport-deployment.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nodeport-service-deployment
+spec:
+  type: NodePort
+  selector:
+    app: nginx-deployment
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+    nodePort: 30080
+
+# kubectl apply -f nodeport-deployment.yaml
+# kubectl get svc -o wide
+# kubectl describe svc nodeport-service-deployment
+
+# vi loadbalancer-deployment.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: loadbalancer-service-deployment
+spec:
+  type: LoadBalancer
+  externalIPs:
+  - 192.168.1.186
+  - 192.168.1.193
+  - 192.168.1.194
+  selector:
+    app: nginx-deployment
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+# kubectl apply -f loadbalancer-deployment.yaml
+# kubectl get svc -o wide
+# kubectl describe svc loadbalancer-service-deployment
+
+# kubectl get all
+# kubectl delete pod,svc --all
+# kubectl delete replicaset,svc --all
+# kubectl delete deployment,svc --all
+```
+
+#### Deployment 롤링 업데이트 제어
+
+```
+# kubectl set image deployment.apps/nginx-deployment nginx-deployment-container=nginx:1.9.1
+# kubectl get all
+# kubectl rollout history deployment nginx-deployment
+# kubectl rollout history deployment nginx-deployment --revision=2 # 리비전2 상세보기
+# kubectl rollout undo deployment nginx-deployment # 롤백(전 단계로 복원)
+# kubectl rollout undo deployment nginx-deployment --to-revision=1 # 특정 리비전 롤백(특정 단계로 복원)
+# kubectl get all
+# kubectl rollout history deployment nginx-deployment
+# kubectl rollout history deployment nginx-deployment --revision=3 # 리비전3 상세보기
+```
+
+### Ingress
+
+```
+# yum install -y git
+# git clone https://github.com/hali-linux/_Book_k8sInfra.git
+# kubectl apply -f /root/_Book_k8sInfra/ch3/3.3.2/ingress-nginx.yaml
+# kubectl get pods -n ingress-nginx
+# mkdir ingress && cd $_
+# vi ingress-deploy.yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: foods-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: foods-deploy
+  template:
+    metadata:
+      labels:
+        app: foods-deploy
+    spec:
+      containers:
+      - name: foods-deploy
+        image: halilinux/test-home:v1.0
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: foods-svc
+spec:
+  type: ClusterIP
+  selector:
+    app: foods-deploy
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sales-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sales-deploy
+  template:
+    metadata:
+      labels:
+        app: sales-deploy
+    spec:
+      containers:
+      - name: sales-deploy
+        image: halilinux/test-home:v2.0
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sales-svc
+spec:
+  type: ClusterIP
+  selector:
+    app: sales-deploy
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: home-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: home-deploy
+  template:
+    metadata:
+      labels:
+        app: home-deploy
+    spec:
+      containers:
+      - name: home-deploy
+        image: halilinux/test-home:v0.0
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: home-svc
+spec:
+  type: ClusterIP
+  selector:
+    app: home-deploy
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+
+# kubectl apply -f ingress-deploy.yaml
+# kubectl get all
+# vi ingress-config.yaml
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /foods
+        backend:
+          serviceName: foods-svc
+          servicePort: 80
+      - path: /sales
+        backend:
+          serviceName: sales-svc
+          servicePort: 80
+      - path:
+        backend:
+          serviceName: home-svc
+          servicePort: 80
+
+# kubectl apply -f ingress-config.yaml
+
+# vi ingress-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-ingress-controller
+  namespace: ingress-nginx
+spec:
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 80
+  - name: https
+    protocol: TCP
+    port: 443
+    targetPort: 443
+  selector:
+    app.kubernetes.io/name: ingress-nginx
+  type: LoadBalancer
+  externalIPs:
+  - 192.168.2.0
+
+# kubectl apply -f ingress-service.yaml
+```
+
+## Volume
+
+```
+# pv-pvc-pod.yaml
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: task-pv-volume
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Mi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: task-pv-claim
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Mi
+  selector:
+    matchLabels:
+      type: local
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: task-pv-pod
+  labels:
+    app: task-pv-pod
+spec:
+  volumes:
+    - name: task-pv-storage
+      persistentVolumeClaim:
+        claimName: task-pv-claim
+  containers:
+    - name: task-pv-container
+      image: nginx
+      ports:
+        - containerPort: 80
+          name: "http-server"
+      volumeMounts:
+        - mountPath: "/usr/share/nginx/html"
+          name: task-pv-storage
+# kubectl apply -f pv-pvc-pod.yaml
+# kubectl get pv
+# kubectl get pvc
+# worker node 밑에 ls /mnt 하면 data 폴더 보임 echo 명령어로 index.html 만들면 폴더 공유 됨
 ```
