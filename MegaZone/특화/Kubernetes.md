@@ -699,3 +699,233 @@ spec:
 # kubectl get pvc
 # worker node 밑에 ls /mnt 하면 data 폴더 보임 echo 명령어로 index.html 만들면 폴더 공유 됨
 ```
+
+#### NFS-Volume
+
+```
+# yum install -y nfs-utils.x86_64
+# mkdir /nfs_shared
+# chmod 777 /nfs_shared
+# echo '/nfs_shared 192.168.0.0/20(rw,sync,no_root_squash)' >> /etc/exports
+# systemctl enable --now nfs
+# vi nfs-pv.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-pv
+spec:
+  capacity:
+    storage: 100Mi
+  accessModes:
+    - ReadWriteMany #RWX
+  persistentVolumeReclaimPolicy: Recycle
+  nfs:
+    server: 192.168.1.186
+    path: /nfs_shared
+
+# kubectl apply -f nfs-pv.yaml
+# kubectl get pv
+# vi nfs-pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Mi
+
+# kubectl apply -f nfs-pvc.yaml
+# kubectl get pvc
+# kubectl get pv
+# vi nfs-pvc-deploy.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nfs-pvc-deploy
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: nfs-pvc-deploy
+  template:
+    metadata:
+      labels:
+        app: nfs-pvc-deploy
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        volumeMounts:
+        - name: nfs-vol
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: nfs-vol
+        persistentVolumeClaim:
+          claimName: nfs-pvc
+
+# kubectl apply -f nfs-pvc-deploy.yaml
+# kubectl get pod
+# kubectl exec -it nfs-pvc-deploy-76bf944dd5-6j9gf -- /bin/bash
+# kubectl expose deployment nfs-pvc-deploy --type=LoadBalancer --name=nfs-pvc-deploy-svc1 --external-ip 192.168.1.186 --port=80
+```
+
+### metallb (DHCP)
+
+- ip 충돌을 방지하기 위하여 어댑터 1 NAT Network 어댑터 2 호스트 전용 어댑터로 설정
+- hosts 파일 수정
+
+#### kubeadm 초기화
+
+```
+# kubeadm reset
+# kubeadm init --apiserver-advertise-address=192.168.56.103 --pod-network-cidr=10.244.0.0/16
+# mkdir -p $HOME/.kube
+# cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+# chown $(id -u):$(id -g) $HOME/.kube/config
+# kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
+```
+
+#### metallb
+
+```
+# yum install -y git
+# git clone https://github.com/hali-linux/_Book_k8sInfra.git
+# kubectl apply -f /root/_Book_k8sInfra/ch3/3.3.4/metallb.yaml
+# kubectl get pods -n metallb-system -o wide
+# vi metallb-l2config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: metallb-system
+  name: config
+data:
+  config: |
+    address-pools:
+    - name: nginx-ip-range
+      protocol: layer2
+      addresses:
+      - 192.168.56.200-192.168.56.250
+
+# kubectl apply -f metallb-l2config.yaml
+# kubectl describe configmaps -n metallb-system
+
+- docker 이미지 풀로 받아서 태그 변경 후 사설 레포지토리에 업로드
+metallb/speaker:v0.8.2
+metallb/controller:v0.8.2
+
+# vi metallb-test.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+  labels:
+    app: nginx-pod
+spec:
+  containers:
+  - name: nginx-pod-container
+    image: 192.168.56.103:5000/nginx:latest
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: loadbalancer-service-pod
+spec:
+  type: LoadBalancer
+#  externalIPs:
+#  -
+  selector:
+    app: nginx-pod
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+
+# kubectl apply -f metallb-test.yaml
+```
+
+### multi-container
+
+```
+# vi multipod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+ name: multipod
+spec:
+ containers:
+ - name: nginx-container        #1번째 컨테이너
+   image: nginx:1.14
+   ports:
+   - containerPort: 80
+ - name: centos-container       #2번째 컨테이너
+   image: centos:7
+   command:
+   - sleep
+   - "10000"
+# kubectl apply -f multipod.yaml
+```
+
+#### Multi-Container-Wordpress
+
+```
+# vi wordpress-pod-svc.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: wordpress-pod
+  labels:
+    app: wordpress-pod
+spec:
+  containers:
+  - name: mysql-container
+    image: mysql:5.7
+    env:
+    - name: MYSQL_ROOT_HOST
+      value: '%' # wpuser@%
+    - name: MYSQL_ROOT_PASSWORD
+      value: kosa0401
+    - name: MYSQL_DATABASE
+      value: wordpress
+    - name: MYSQL_USER
+      value: wpuser
+    - name: MYSQL_PASSWORD
+      value: wppass
+    ports:
+    - containerPort: 3306
+  - name: wordpress-container
+    image: wordpress
+    env:
+    - name: WORDPRESS_DB_HOST
+      value: wordpress-pod:3306
+    - name: WORDPRESS_DB_USER
+      value: wpuser
+    - name: WORDPRESS_DB_PASSWORD
+      value: wppass
+    - name: WORDPRESS_DB_NAME
+      value: wordpress
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: loadbalancer-service-deployment-wordpress
+spec:
+  type: LoadBalancer
+  externalIPs:
+  - 192.168.56.103
+  selector:
+    app: wordpress-pod
+  ports:
+  - protocol: TCP
+    port: 80
+```
+
+### ConfigMap
+
+- ConfigMap은 키-값 쌍으로 기밀이 아닌 데이터를 저장하는 데 사용한 API 오브젝트
+- Pod는 볼륨에서 환경 변수, 커맨드-라인 인수 또는 구성 파일로 ConfigMap 사용
+- 컨테이너 이미지에서 환경별 구성을 분리하여, 애플리케이션을 쉽게 이식
