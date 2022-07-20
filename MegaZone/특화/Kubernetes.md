@@ -77,6 +77,33 @@
 - pod에 속한 컨테이너는 스토리지와 네트워크를 공유하고 서로 localhost로 접근
 - 컨테이너를 하나만 사용하는 경우도 반드시 pod으로 감싸서 관리
 
+### 서비스 배포 전략
+
+1. Recreate
+   - 가장 단순한 배포 전략
+   - 기존 버전의 서버를 모두 삭제한 다음 새로운 버전의 서버를 생성
+   - 서비스에 대한 일시적인 DownTime(중단 시간) 존재 - 무중단 배포 X
+   - ![Recreate](https://images.contentstack.io/v3/assets/blt300387d93dabf50e/blt2bcee413a9844e96/5ccb571c43283e8d640ed147/recreate-deployment-ww.png)
+2. Rolling Update
+   - 기존 버전의 서버를 하나씩 죽이고 새로운 버전의 서버를 하나씩 띄우면서 순차적으로 교체하는 방법
+   - 서버를 하나하나씩 버전을 업그레이드 하는 방식
+   - 배포 중 추가 자원을 요구하지만, 서비스 DownTime 시간이 없음 - 무중단 배포
+   - `이전 버전과 새로운 버전이 공존하는 시간이 발생`
+   - ![Rolling update](https://images.contentstack.io/v3/assets/blt300387d93dabf50e/blt6743d826f9bc314f/5ccb56f2887e04ba691710fa/rolling-deployment-ww.png)
+3. Blue/Green
+   - 구 버전과 새로운 버전의 2가지를 서버에 마련하고, 이를 한꺼번에 교체하는 방법
+   - 서비스 DownTime이 존재하지 않고, 롤백이 쉬움
+   - 이전 버너과 새로운 버전의 공존하는 시간이 존재하는 Rolling Update의 문제를 해결
+   - 운영 환경에 영향을 주지 않고 실제 서비스 환경으로 새 버전 테스트가 가능
+   - 배포 시 시스템 자원의 2배를 사용하는 단점
+   - ![Blue/Green](https://images.contentstack.io/v3/assets/blt300387d93dabf50e/blt3bd39fbb7a30f3f6/5ccb574ce8ec6ef265db8001/blue-green-deployment-ww.png)
+4. Canary
+   - 어원 처럼 위험을 빠르게 감지할 수 있는 배포 기법
+   - 구버전의 서버와 새로운 버전의 서버들을 구성하고 일부 트래픽을 새 버전으로 분산시켜 테스트 진행
+   - 새 버전을 프로덕션 서버로 사용될 수 있고, 문제가 있으면 다시 구버전으로 돌갈 수 있음
+   - A/B 테스트 가능
+   - ![Canary](https://images.contentstack.io/v3/assets/blt300387d93dabf50e/blt1942369a1c20bf82/5ccb56d2683c75ef6553878b/canary-deployment-ww.png)
+
 ## Kubernetes 설치
 
 ### Minikube 설치(Single Node: Master Node + Worker Node)
@@ -377,6 +404,10 @@ spec:
 ```
 
 ### Deployment
+
+- Deployment = ReplicaSet + Pod + history이며 ReplicaSet 을 만드는 것보다 더 윗 단계의 선언(추상표현)이다.
+- Deployment 사용 이유는 애플리케이션의 업데이트와 배포를 더욱 편하게 만들기 위해
+- 컨테이너 애플리케이션을 배포하고 관리하는 역할
 
 ```
 # vi deployment.yaml
@@ -929,3 +960,451 @@ spec:
 - ConfigMap은 키-값 쌍으로 기밀이 아닌 데이터를 저장하는 데 사용한 API 오브젝트
 - Pod는 볼륨에서 환경 변수, 커맨드-라인 인수 또는 구성 파일로 ConfigMap 사용
 - 컨테이너 이미지에서 환경별 구성을 분리하여, 애플리케이션을 쉽게 이식
+
+```
+# vi configmap-dev.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-dev
+  namespace: default
+data:
+  DB_URL: localhost
+  DB_USER: myuser
+  DB_PASS: mypass
+  DEBUG_INFO: debug
+# kubectl apply -f configmap-dev.yaml
+
+# vi deployment-config01.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: configapp
+  labels:
+    app: configapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: configapp
+  template:
+    metadata:
+      labels:
+        app: configapp
+    spec:
+      containers:
+      - name: testapp
+        image: nginx
+        ports:
+        - containerPort: 8080
+        env: # DEBUG_LEVEL=debug
+        - name: DEBUG_LEVEL # 컨테이너 안에서의 변수 명
+          valueFrom:
+            configMapKeyRef:
+              name: config-dev
+              key: DEBUG_INFO
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: configapp
+  name: configapp-svc
+  namespace: default
+spec:
+  type: NodePort
+  ports:
+  - nodePort: 30800
+    port: 8080
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: configapp
+
+# kubectl exec -it configapp-64d4554b68-v55g5 -- bash
+# env
+```
+
+### ImagePullError 해결
+
+```
+# kubectl create secret generic jigreg --from-file=.dockerconfigjson=/root/.docker/config.json --type=kubernetes.io/dockerconfigjson
+# kubectl patch -n default serviceaccount/default -p '{"imagePullSecrets":[{"name": "jigreg"}]}'
+# kubectl describe serviceaccount default -n default
+```
+
+#### Configmap Wordpress 적용
+
+- Configmap 설정
+
+```
+# vi configmap-wordpress.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-wordpress
+  namespace: default
+data:
+  MYSQL_ROOT_HOST: '%'
+  MYSQL_ROOT_PASSWORD: kosa0401
+  MYSQL_DATABASE: wordpress
+  MYSQL_USER: wpuser
+  MYSQL_PASSWORD: wppass
+
+# kubectl apply -f configmap-wordpress.yaml
+# kubectl describe configmaps config-wordpress
+
+```
+
+- DB, Wordpress SVC,POD 설정
+
+```
+# vi mysql-wordpress-pod-svc.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql-pod
+  labels:
+    app: mysql-pod
+spec:
+  containers:
+  - name: mysql-container
+    image: mysql:5.7
+    envFrom: # configmap 설정 전체를 한꺼번에 불러와서 사용
+    - configMapRef:
+        name: config-wordpress
+    ports:
+    - containerPort: 3306
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-svc
+spec:
+  type: ClusterIP
+  selector:
+    app: mysql-pod
+  ports:
+  - protocol: TCP
+    port: 3306
+    targetPort: 3306
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: wordpress-pod
+  labels:
+    app: wordpress-pod
+spec:
+  containers:
+  - name: wordpress-container
+    image: wordpress
+    env:
+    - name: WORDPRESS_DB_HOST
+      value: mysql-svc:3306
+    - name: WORDPRESS_DB_USER
+      valueFrom:
+        configMapKeyRef:
+          name: config-wordpress
+          key: MYSQL_USER
+    - name: WORDPRESS_DB_PASSWORD
+      valueFrom:
+        configMapKeyRef:
+          name: config-wordpress
+          key: MYSQL_PASSWORD
+    - name: WORDPRESS_DB_NAME
+      valueFrom:
+        configMapKeyRef:
+          name: config-wordpress
+          key: MYSQL_DATABASE
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress-svc
+spec:
+  type: LoadBalancer
+  externalIPs: # metallb 설정해서 따로 안줘도 댐 주석처리 가능
+  - 192.168.2.0
+  selector:
+    app: wordpress-pod
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+```
+
+#### Configmap-wordpress-deployment
+
+```
+# vi mysql-deploy-svc.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-deploy
+  labels:
+    app: mysql-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-deploy
+  template:
+    metadata:
+      labels:
+        app: mysql-deploy
+    spec:
+      containers:
+      - name: mysql-container
+        image: mysql:5.7
+        envFrom:
+        - configMapRef:
+            name: config-wordpress
+        ports:
+        - containerPort: 3306
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-svc
+spec:
+  type: ClusterIP
+  selector:
+    app: mysql-deploy
+  ports:
+  - protocol: TCP
+    port: 3306
+    targetPort: 3306
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress-deploy
+  labels:
+    app: wordpress-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wordpress-deploy
+  template:
+    metadata:
+      labels:
+        app: wordpress-deploy
+    spec:
+      containers:
+      - name: wordpress-container
+        image: wordpress
+        env:
+        - name: WORDPRESS_DB_HOST
+          value: mysql-svc:3306
+        - name: WORDPRESS_DB_USER
+          valueFrom:
+            configMapKeyRef:
+              name: config-wordpress
+              key: MYSQL_USER
+        - name: WORDPRESS_DB_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: config-wordpress
+              key: MYSQL_PASSWORD
+        - name: WORDPRESS_DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: config-wordpress
+              key: MYSQL_DATABASE
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress-svc
+spec:
+  type: LoadBalancer
+#  externalIPs:
+#  - 192.168.2.0
+  selector:
+    app: wordpress-deploy
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+```
+
+### namespace
+
+- 쿠버네티스 클러스터 하나를 여러 개 논리적인 단위로 나눠서 사용하는 것
+- 쿠버네티스 클러스터 하나를 여러 개 팀이나 사용자가 함께 공유
+- 클러스터 안에서 용도에 따라 실행해야 하는 앱을 구분
+- 네임스페이스별 별도의 쿼터를 설정해서 특정 네임스페이스의 사용량을 제한
+
+```
+# kubectl get namespaces
+# kubectl config get-contexts kubernetes-admin@kubernetes
+# kubectl config set-context kubernetes-admin@kubernetes --namespace=kube-system
+# kubectl config get-contexts kubernetes-admin@kubernetes
+# kubectl config set-context kubernetes-admin@kubernetes --namespace=default
+# kubectl create namespace test-namespace
+# kubectl get namespace
+--- default 네임 스페이스로 설정
+# kubectl config set-context kubernetes-admin@kubernetes --namespace=test-namespace
+# kubectl config set-context kubernetes-admin@kubernetes --namespace=default
+```
+
+### ResourceQuota
+
+- 각 네임스페이스마다, 가상 쿠버네티스 클러스터마다 사용 가능한 리소스 제한
+- 생성이나 변경으로 그 시점에 제한이 걸린 상태가 되어도 이미 생성된 리소스에는 영향 X
+- '생성 가능한 리소스 수 제한'과 리소스 사용량 제한'으로 나눌 수 있음
+
+```
+# vi sample-resourcequota.yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: sample-resourcequota
+  namespace: my-ns
+spec:
+  hard:
+    count/pods: 5
+
+# kubectl describe resourcequotas sample-resourcequota
+# kubectl run pod new-nginx --image=nginx
+
+# vi sample-resourcequota-usable.yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: sample-resourcequota-usable
+  namespace: default
+spec:
+  hard:
+    requests.memory: 2Gi
+    requests.storage: 5Gi
+    sample-storageclass.storageclass.storage.k8s.io/requests.storage: 5Gi
+    requests.ephemeral-storage: 5Gi
+    requests.nvidia.com/gpu: 2
+    limits.cpu: 4
+    limits.ephemeral-storage: 10Gi
+    limits.nvidia.com/gpu: 4
+
+# vi sample-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-pod
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:1.16
+    resources:
+       requests:
+          memory: "64Mi"
+          cpu: "50m" # m -> milicore 1000 milicore = 1C
+       limits:
+          memory: "128Mi"
+          cpu: "100m"
+
+
+# vi sample-resource.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-resource
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.16
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m" # m -> milicore 1000 milicore = 1C
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+```
+
+### LimitRange
+
+- Pod에 대해 CPU나 메모리 리소스의 최솟값과 최대값, 기본값 등을 설정 할 수 있음
+- Namesapce에 제한을 주려면 네임스페이스마다 설정
+- 기본 Pod에 영향 X
+
+```
+# vi sample-limitrange-container.yaml
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: sample-limitrange-container
+  namespace: default
+spec:
+  limits:
+  - type: Container
+    default:
+      memory: 512Mi
+      cpu: 500m
+    defaultRequest:
+      memory: 256Mi
+      cpu: 250m
+    max:
+      memory: 1024Mi
+      cpu: 1000m
+    min:
+      memory: 128Mi
+      cpu: 125m
+    maxLimitRequestRatio:
+      memory: 2
+      cpu: 2
+
+# vi sample-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-pod
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:1.16
+
+# vi sample-pod-overrequest.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-pod-overrequest
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:1.16
+    resources:
+      requests:
+        cpu: 100m # 최소가 125m 인데 제안을 100으로 하면 안됨
+      limits:
+        cpu: 100m
+
+# vi sample-pod-overratio.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-pod-overratio
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:1.16
+    resources:
+      requests:
+        cpu: 125m
+      limits:
+        cpu: 500m # 250m 비율이 2배 초과되면 안됨
+```
