@@ -1408,3 +1408,159 @@ spec:
       limits:
         cpu: 500m # 250m 비율이 2배 초과되면 안됨
 ```
+
+### Pod Nodename(수동 배치)
+
+```
+# vi pod-nodename.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-nodename-metadata
+  labels:
+    app: pod-nodename-labels
+spec:
+  containers:
+  - name: pod-nodename-containers
+    image: nginx
+    ports:
+    - containerPort: 80
+  nodeName: worker2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pod-nodename-service
+spec:
+  type: NodePort
+  selector:
+    app: pod-nodename-labels
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+```
+
+### Node-Selector(수동 배치)
+
+```
+# kubectl label nodes worker1 tier=dev
+# kubectl get nodes --show-labels
+# vi pod-nodeselector.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-nodeselector-metadata
+  labels:
+    app: pod-nodeselector-labels
+spec:
+  containers:
+  - name: pod-nodeselector-containers
+    image: nginx
+    ports:
+    - containerPort: 80
+  nodeSelector:
+    tier: dev
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pod-nodeselector-service
+spec:
+  type: NodePort
+  selector:
+    app: pod-nodeselector-labels
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+# kubectl label nodes worker1 tier-
+# kubectl get nodes --show-labels
+```
+
+### taint와 toleration
+
+```
+# kubectl taint node worker1 tier=dev:NoSchedule
+# kubectl describe nodes worker1
+# vi pod-taint.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-taint-metadata
+  labels:
+    app: pod-taint-labels
+spec:
+  containers:
+  - name: pod-taint-containers
+    image: nginx
+ports:
+    - containerPort: 80
+  tolerations:
+  - key: “tier”
+    operator: “Equal”
+    value: “dev”
+    effect: “NoSchedule”
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pod-taint-service
+spec:
+  type: NodePort
+  selector:
+    app: pod-taint-labels
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+```
+
+## EKS
+
+### AWS 사용자 데이터
+
+```
+#!/bin/bash
+cd /tmp
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+./aws/install
+amazon-linux-extras install docker -y
+systemctl enable --now docker
+curl https://raw.githubusercontent.com/docker/docker-ce/master/components/cli/contrib/completion/bash/docker -o /etc/bash_completion.d/docker.sh
+usermod -a -G docker ec2-user
+```
+
+### aws 자격증명
+
+```
+# aws configure
+
+- ECR 퍼블릭 레포지토리 만들기
+
+- aws ecr 업로드(push)
+$  aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/e3m6b4w8
+$ docker tag jigreg/web-site:v2.0 public.ecr.aws/e3m6b4w8/web-site:latest
+$ docker push public.ecr.aws/e3m6b4w8/web-site:latest
+
+- 콘솔에서 클러스터 만들기
+EKS 역할 만들기
+VPC / SUBENT/ 설정
+
+- eks cli
+$ aws eks --region ap-northeast-2 update-kubeconfig --name EKS-CLUSTER # eks master node 접속 방법
+$ curl -o kubectl https://s3.us-west-2.amazonaws.com/amazon-eks/1.19.6/2021-01-05/bin/linux/amd64/kubectl
+$ chmod +x ./kubectl
+$ sudo mv ./kubectl /usr/local/bin
+$ source <(kubectl completion bash)
+$ echo "source <(kubectl completion bash)" >> ~/.bashrc
+$ kubectl version --short --client
+$ kubectl get svc
+
+- nodegroup 역할 만들기
+역할만들기 - AWS 서비스 - EC2 역할 검색해서 체크해주기
+AmazonEKSWorkerNodePolicy
+AmazonEC2ContainerRegistryReadOnly
+AmazonEKS_CNI_Policy
+```
