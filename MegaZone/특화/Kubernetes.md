@@ -1534,12 +1534,12 @@ usermod -a -G docker ec2-user
 
 ### aws 자격증명
 
-```
-# aws configure
-
 - ECR 퍼블릭 레포지토리 만들기
-
+  - 퍼블릭
+- `aws configure`
 - aws ecr 업로드(push)
+
+```
 $  aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/e3m6b4w8
 $ docker tag jigreg/web-site:v2.0 public.ecr.aws/e3m6b4w8/web-site:latest
 $ docker push public.ecr.aws/e3m6b4w8/web-site:latest
@@ -1549,7 +1549,7 @@ EKS 역할 만들기
 VPC / SUBENT/ 설정
 
 - eks cli
-$ aws eks --region ap-northeast-2 update-kubeconfig --name EKS-CLUSTER # eks master node 접속 방법
+`https://docs.aws.amazon.com/ko_kr/eks/latest/userguide/install-kubectl.html` 에서 버전에 맞는 kubectl 찾아서 설치
 $ curl -o kubectl https://s3.us-west-2.amazonaws.com/amazon-eks/1.19.6/2021-01-05/bin/linux/amd64/kubectl
 $ chmod +x ./kubectl
 $ sudo mv ./kubectl /usr/local/bin
@@ -1557,6 +1557,7 @@ $ source <(kubectl completion bash)
 $ echo "source <(kubectl completion bash)" >> ~/.bashrc
 $ kubectl version --short --client
 $ kubectl get svc
+$ aws eks --region ap-northeast-2 update-kubeconfig --name EKS-CLUSTER # eks master node 접속 방법
 
 - nodegroup 역할 만들기
 역할만들기 - AWS 서비스 - EC2 역할 검색해서 체크해주기
@@ -1564,3 +1565,13 @@ AmazonEKSWorkerNodePolicy
 AmazonEC2ContainerRegistryReadOnly
 AmazonEKS_CNI_Policy
 ```
+
+- EKS 에서 컴퓨팅 노드 그룹 생성
+  - NODEGROUP
+  - 노드 IAM 역할 : nodeGroupRole
+  - Amazon Linux 2
+  - Spot
+  - t2.micro
+  - 20GB
+  - Auto Scaling 2-2-4
+  - 노드에 대한 SSH 액세스 구성
