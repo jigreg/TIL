@@ -1575,3 +1575,182 @@ AmazonEKS_CNI_Policy
   - 20GB
   - Auto Scaling 2-2-4
   - 노드에 대한 SSH 액세스 구성
+
+### PV & PVC
+
+```
+# vi aws-sc.yaml
+
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+name: gp2
+annotations:
+storageclass.kubernetes.io/is-default-class: "true"
+provisioner: kubernetes.io/aws-ebs
+parameters:
+type: gp2
+fsType: ext4
+```
+
+```
+# aws ec2 create-volume --availability-zone=ap-northeast-2a --size=1 --volume-type=gp2
+```
+
+```
+# vi aws-vol.yaml
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+name: pv-aws
+labels:
+type: local
+spec:
+storageClassName: gp2
+capacity:
+storage: 1Gi
+persistentVolumeReclaimPolicy: Retain
+accessModes: - ReadWriteOnce
+awsElasticBlockStore:
+fsType: ext4
+volumeID: vol-000bd0a06f89e04ef
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+name: pvc-aws
+namespace: default
+spec:
+accessModes: - ReadWriteOnce
+resources:
+requests:
+storage: 1Gi
+selector:
+matchLabels:
+type: local
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+name: pod-aws
+namespace: default
+labels:
+app: pod-aws
+spec:
+containers: - name: test
+image: nginx
+volumeMounts: - mountPath: "/usr/share/nginx/html"
+name: pvc
+nodeName: ip-10-26-1-8.ap-northeast-2.compute.internal
+volumes: - name: pvc
+persistentVolumeClaim:
+claimName: pvc-aws
+WorkerNode
+
+# sudo mount /dev/xvdbc /mnt
+# df -h
+```
+
+```
+# aws ec2 create-volume --availability-zone=ap-northeast-2c --size=1 --volume-type=gp2
+```
+
+```
+# vi test-ebs.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+name: test-ebs
+spec:
+containers:
+
+- image: nginx
+  name: test-container
+  volumeMounts:
+  - mountPath: /test-ebs
+    name: test-volume
+    nodeName: ip-10-26-40-223.ap-northeast-2.compute.internal
+    volumes:
+- name: test-volume
+  # This AWS EBS volume must already exist.
+  awsElasticBlockStore:
+  volumeID: "vol-0359d95c877f28ab6"
+  fsType: ext4
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+name: test-ebs-svc
+spec:
+type: NodePort
+selector:
+app: test-ebs
+ports:
+
+- protocol: TCP
+  port: 80
+  targetPort: 80 # 컨테이너 포트가 맞다.
+  nodePort: 30080
+```
+
+### Wordpress & RDS
+
+```
+# vi configmap-wordpress.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-wordpress
+  namespace: default
+data:
+  WORDPRESS_DB_HOST: database-1.ckcz3uuj9vbl.ap-northeast-2.rds.amazonaws.com:3306
+  WORDPRESS_DB_USER: seojun
+  WORDPRESS_DB_PASSWORD: kosa0401
+  WORDPRESS_DB_NAME: wordpress
+
+# vi wordpress-deployment-svc.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress-deploy
+  labels:
+    app: wordpress-deploy
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: wordpress-deploy
+  template:
+    metadata:
+      labels:
+        app: wordpress-deploy
+    spec:
+      containers:
+      - name: wordpress-container
+        image: wordpress
+        envFrom:
+        - configMapRef:
+            name: config-wordpress
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress-svc
+spec:
+  type: LoadBalancer
+  selector:
+    app: wordpress-deploy
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+```
