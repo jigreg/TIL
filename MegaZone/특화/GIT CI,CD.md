@@ -113,3 +113,84 @@ GitHub 원격저장소의 커밋을 로컬저장소에 내려받기
 - Continuous Integration (CI)
 - Continuous Delivery (CD)
 - Continuous Deployment (CD)
+
+### 젠킨스 설치
+
+```
+$ sudo su -
+# wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+# rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io.key
+# yum install -y fontconfig java-11-openjdk
+# amazon-linux-extras install -y java-openjdk11
+# yum install -y jenkins
+# systemctl enable --now jenkins
+# cat /var/lib/jenkins/secrets/initialAdminPassword # 패스워드 수정
+```
+
+### Install Git on Jenkins Instance
+
+```
+# hostnamectl set-hostname jenkins-server
+# yum install -y git
+```
+
+### Maven 설치
+
+```
+# cd /opt
+# wget https://dlcdn.apache.org/maven/maven-3/3.8.6/binaries/apache-maven-3.8.6-bin.tar.gz
+# tar -xvzf apache-maven-3.8.6-bin.tar.gz
+# mv apache-maven-3.8.6 maven
+# cd maven
+# cd bin
+# cd ~
+# find / -name java-11*
+# vi .bash_profile
+M2_HOME=/opt/maven
+M2=/opt/maven/bin
+JAVA_HOME=/usr/lib/jvm/java-11-openjdk-11.0.13.0.8-1.amzn2.0.3.x86_64
+# User specific environment and startup programs
+PATH=$PATH:$HOME/bin:$JAVA_HOME:$M2_HOME:$M2
+# echo $PATH
+# source .bash_profile
+# echo $PATH
+# mvn -v
+```
+
+--- Tomcat 서버 설치 https://tomcat.apache.org/download-90.cgi
+
+```
+# hostnamectl set-hostname tomcat-server
+# amazon-linux-extras install -y java-openjdk11
+# cd /opt
+# wget https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.65/bin/apache-tomcat-9.0.65.tar.gz
+# tar -xvzf apache-tomcat-9.0.65.tar.gz
+# mv apache-tomcat-9.0.65 tomcat
+# cd tomcat/bin/
+# ./startup.sh
+# cd /opt/tomcat
+# find / -name context.xml
+# vi /opt/tomcat/webapps/host-manager/META-INF/context.xml
+<!--  <Valve className="org.apache.catalina.valves.RemoteAddrValve"
+         allow="127\.\d+\.\d+\.\d+|::1|0:0:0:0:0:0:0:1" /> -->
+# vi /opt/tomcat/webapps/manager/META-INF/context.xml
+<!--  <Valve className="org.apache.catalina.valves.RemoteAddrValve"
+         allow="127\.\d+\.\d+\.\d+|::1|0:0:0:0:0:0:0:1" /> -->
+# cd tomcat/bin/
+# ./shutdown.sh
+# ./startup.sh
+# /opt/tomcat/conf
+# vi tomcat-users.xml
+<role rolename="manager-gui"/>
+<role rolename="manager-script"/>
+<role rolename="manager-jmx"/>
+<role rolename="manager-status"/>
+<user username="admin" password="kosa0401" roles="manager-gui, manager-script, manager-jmx, manager-status"/>
+<user username="deployer" password="kosa0401" roles="manager-script"/>
+<user username="tomcat" password="kosa0401" roles="manager-gui"/>
+
+# ln -s /opt/tomcat/bin/startup.sh /usr/local/bin/tomcatup
+# ln -s /opt/tomcat/bin/shutdown.sh /usr/local/bin/tomcatdown
+# tomcatdown
+# tomcatup
+```
