@@ -96,12 +96,34 @@ GitHub 원격저장소의 커밋을 로컬저장소에 내려받기
 # git push origin master
 ```
 
-## Git Lab 설치
+### CentOS Git Lab 설치
 
 ```
 # curl https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.rpm.sh | sudo bash
 # EXTERNAL_URL="http://192.168.4.214" yum install -y gitlab-ce
 # cat /etc/gitlab/initial_root_password # 패스워드 수정
+```
+
+### EC2(Amazon Linux2)에 Gitlab 설치
+
+```
+# sudo yum install -y curl policycoreutils-python openssh-server openssh-clients perl
+# curl https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.rpm.sh | sudo bash
+# sudo sed -i "s/\/el\/7/\/amazon\/2/g" /etc/yum.repos.d/gitlab_gitlab*.repo
+# sudo yum clean metadata
+# sudo yum makecache
+# sudo EXTERNAL_URL="http://tomcat.seojun.shop" yum install -y gitlab-ce
+# cat /etc/gitlab/initial_root_password
+```
+
+### GCP(Debian)에 Gitlab 설치
+
+```
+# sudo apt-get update
+# sudo apt-get install -y curl openssh-server ca-certificates perl
+# curl https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.deb.sh | sudo bash
+# sudo EXTERNAL_URL="http://gitlab.seojun.shop" apt-get install gitlab-ce
+# cat /etc/gitlab/initial_root_password
 ```
 
 ### protection 설정
@@ -157,7 +179,7 @@ PATH=$PATH:$HOME/bin:$JAVA_HOME:$M2_HOME:$M2
 # mvn -v
 ```
 
---- Tomcat 서버 설치 https://tomcat.apache.org/download-90.cgi
+### Tomcat 서버 설치
 
 ```
 # hostnamectl set-hostname tomcat-server
