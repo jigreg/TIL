@@ -216,3 +216,45 @@ PATH=$PATH:$HOME/bin:$JAVA_HOME:$M2_HOME:$M2
 # tomcatdown
 # tomcatup
 ```
+
+### Jenkins User-data
+
+```
+#!/bin/bash
+timedatectl set-timezone Asia/Seoul
+wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io.key
+yum install -y fontconfig java-11-openjdk
+amazon-linux-extras install -y java-openjdk11
+yum install -y jenkins git
+systemctl enable --now jenkins
+cd /opt
+wget https://dlcdn.apache.org/maven/maven-3/3.8.6/binaries/apache-maven-3.8.6-bin.tar.gz
+tar -xvzf apache-maven-3.8.6-bin.tar.gz
+mv apache-maven-3.8.6 maven
+cat <<EOF > /root/.bash_profile
+# .bash_profile
+
+# Get the aliases and functions
+if [ -f ~/.bashrc ]; then
+        . ~/.bashrc
+
+fi
+M2_HOME=/opt/maven
+M2=/opt/maven/bin
+JAVA_HOME=/usr/lib/jvm/java-11-openjdk-11.0.13.0.8-1.amzn2.0.3.x86_64
+# User specific environment and startup programs
+
+PATH=$PATH:$HOME/bin:/usr/lib/jvm/java-11-openjdk-11.0.13.0.8-1.amzn2.0.3.x86_64:/opt/maven:/opt/maven/bin
+
+export PATH
+EOF
+source /root/.bash_profile
+```
+
+```
+# 검증 방법
+cat /var/lib/jenkins/secrets/initialAdminPassword
+echo $PATH
+mvn -v
+```
