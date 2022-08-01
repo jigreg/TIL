@@ -139,9 +139,9 @@
 
 ```
 # cat <<EOF >> /etc/hosts
-192.168.1.186 master1
-192.168.1.193 worker1
-192.168.1.194 worker2
+192.168.56.106 master1
+192.168.56.107 worker1
+192.168.56.108 worker2
 EOF
 
 # hostnamectl set-hostname master
@@ -193,7 +193,7 @@ EOF
 #### Master
 
 ```
-# kubeadm init --apiserver-advertise-address=192.168.1.186 --pod-network-cidr=10.244.0.0/16
+# kubeadm init --apiserver-advertise-address=192.168.56.106 --pod-network-cidr=10.244.0.0/16
 # mkdir -p $HOME/.kube
 # cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 # chown $(id -u):$(id -g) $HOME/.kube/config
@@ -208,8 +208,9 @@ EOF
 #### Node
 
 ```
-# kubeadm join 192.168.1.186:6443 --token igshg8.21uni3daumxd3i3m \
-    --discovery-token-ca-cert-hash sha256:efa1953021daeadd04b92b676933f264040b450f2b6b7c4c63e84c99e18af424
+# kubeadm join 192.168.56.106:6443 --token hx17ok.j6dxrfmvqjex7pnn \
+    --discovery-token-ca-cert-hash sha256:2f31d4a890fefd2e95c61c63804eb1df8e6fe20dba314d78f8fed60fa618fd6c
+
 # kubectl get nodes
 
 ```
@@ -1494,13 +1495,13 @@ spec:
   containers:
   - name: pod-taint-containers
     image: nginx
-ports:
+    ports:
     - containerPort: 80
   tolerations:
-  - key: “tier”
-    operator: “Equal”
-    value: “dev”
-    effect: “NoSchedule”
+  - key: "tier"
+    operator: "Equal"
+    value: "dev"
+    effect: "NoSchedule"
 ---
 apiVersion: v1
 kind: Service
@@ -1514,6 +1515,7 @@ spec:
   - protocol: TCP
     port: 80
     targetPort: 80
+
 ```
 
 ## EKS
@@ -1753,4 +1755,41 @@ spec:
   - protocol: TCP
     port: 80
     targetPort: 80
+```
+
+### Kubernetes update
+
+- master 노드
+
+```
+# yum list --showduplicates kubeadm --disableexcludes=kubernetes
+# yum install -y kubeadm-1.20.15-0 --disableexcludes=kubernetes
+# kubeadm version
+# kubeadm upgrade plan
+# kubeadm upgrade apply v1.20.15
+# yum install -y kubelet-1.20.15-0 kubectl-1.20.15-0 --disableexcludes=kubernetes
+# systemctl daemon-reload
+# systemctl restart kubelet
+```
+
+- worker 노드
+
+```
+# yum install -y kubeadm-1.20.15-0 --disableexcludes=kubernetes
+# kubeadm upgrade node
+
+- Master 노드에서 실행
+# kubectl drain worker1 --ignore-daemonsets --force
+# kubectl drain worker2 --ignore-daemonsets --force
+
+- Worker 노드에서 실행
+# yum install -y kubelet-1.20.15-0 kubectl-1.20.15-0 --disableexcludes=kubernetes
+# systemctl daemon-reload
+# systemctl restart kubelet
+
+- Master 노드에서 실행
+# kubectl uncordon worker1
+# kubectl uncordon worker2
+# kubectl get node
+
 ```
