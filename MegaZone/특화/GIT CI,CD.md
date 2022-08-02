@@ -258,3 +258,60 @@ cat /var/lib/jenkins/secrets/initialAdminPassword
 echo $PATH
 mvn -v
 ```
+
+### Docker host 환경 설치
+
+```
+#!/bin/bash
+timedatectl set-timezone Asia/Seoul
+hostnamectl set-hostname docker-host
+amazon-linux-extras install docker -y
+systemctl enable --now docker
+curl https://raw.githubusercontent.com/docker/docker-ce/master/components/cli/contrib/completion/bash/docker -o /etc/bash_completion.d/docker.sh
+usermod -a -G docker ec2-user
+```
+
+### Docker와 Jenkins 통합
+
+```
+sudo passwd ec2-user
+sudo vi /etc/ssh/sshd_config
+PasswordAuthentication yes
+#PermitEmptyPasswords no
+#PasswordAuthentication no
+sudo systemctl restart sshd
+
+sudo mkdir /opt/docker
+sudo vi /opt/docker/Dockerfile
+FROM tomcat:9
+RUN cp -R /usr/local/tomcat/webapps.dist/* /usr/local/tomcat/webapps
+COPY ./*.war /usr/local/tomcat/webapps
+
+sudo chown -R ec2-user:ec2-user /opt/docker
+```
+
+### Jenkins WEBUI
+
+plugin 설치 - publish over ssh
+configure 설정 - SSH Servers
+Name - docker host
+Hostname - docker.seojun.shop
+Username - ec2-user
+password - kosa0401
+webapp/target/\*.war
+webapp/target
+//opt//docker
+
+cd /opt/docker;
+docker build -t halilinux/mytomcat:v1.0 .;
+docker rm -f docker-container;
+docker run -d -p 8080:8080 --name docker-container halilinux/mytomcat:v1.0
+
+http://docker.alibaba9.shop:8080/webapp/
+
+```
+vi ~/hello-world/webapp/src/main/webapp/index.jsp
+git add index.jsp
+git commit -m "edit index.jsp"
+git push origin master
+```
