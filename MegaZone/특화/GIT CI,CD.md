@@ -297,7 +297,6 @@ configure 설정 - SSH Servers
 Name - docker host
 Hostname - docker.seojun.shop
 Username - ec2-user
-password - kosa0401
 webapp/target/\*.war
 webapp/target
 //opt//docker
@@ -314,4 +313,97 @@ vi ~/hello-world/webapp/src/main/webapp/index.jsp
 git add index.jsp
 git commit -m "edit index.jsp"
 git push origin master
+```
+
+### Ansible 설치(사용자 데이터)
+
+```
+#!/bin/bash
+timedatectl set-timezone Asia/Seoul
+hostnamectl set-hostname ansible-server
+amazon-linux-extras install -y ansible2
+amazon-linux-extras install docker -y
+systemctl enable --now docker
+curl https://raw.githubusercontent.com/docker/docker-ce/master/components/cli/contrib/completion/bash/docker -o /etc/bash_completion.d/docker.sh
+usermod -a -G docker ec2-user
+```
+
+### Ansible Server Setting
+
+```
+# sudo passwd ec2-user
+# sudo vi /etc/ssh/sshd_config
+    PasswordAuthentication yes
+    #PermitEmptyPasswords no
+    #PasswordAuthentication no
+# sudo systemctl restart sshd
+
+```
+
+```
+# vi /etc/ansible/hosts
+10.26.37.49
+
+# ssh-keygen -t rsa
+# ssh-copy-id 10.26.37.49
+
+# ansible all -m ping
+
+# sudo mkdir /opt/docker
+# sudo chown -R ec2-user:ec2-user /opt/docker
+# cd /opt/docker/
+# ll
+webapp.war
+```
+
+```
+# vi Dockerfile
+FROM tomcat:9
+RUN cp -R /usr/local/tomcat/webapps.dist/* /usr/local/tomcat/webapps
+COPY ./*.war /usr/local/tomcat/webapps
+
+# sudo vi /etc/ansible/hosts
+[docker-host]
+10.26.37.49
+
+[ansible-server]
+10.26.33.241
+
+# ssh-copy-id 10.26.33.241
+```
+
+### Ansible Playbook
+
+```
+# vi build.yml
+- hosts: ansible-server
+
+  tasks:
+  - name: create docker image
+    command: docker build -t jigreg/mytomcat:v1.0 .
+    args:
+      chdir: /opt/docker
+
+  - name: push docker image
+    command: docker push jigreg/mytomcat:v1.0
+
+# docker login
+# ansible-playbook build.yml
+# docker images
+# docker push jigreg/mytomcat:v1.0
+
+WEB Console
+cd /opt/docker;
+ansible-playbook build.yml
+
+# vi deploy.yml
+- hosts: docker-host
+
+  tasks:
+  - name: remove container
+    command: docker rm -f docker-container
+  - name: remove image
+    command: docker rmi -f jigreg/mytomcat:v1.0
+  - name: create container
+    command: docker run -d -p 8080:8080 --name docker-container jigreg/mytomcat:v1.0
 ```
