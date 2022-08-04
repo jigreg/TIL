@@ -407,3 +407,162 @@ ansible-playbook build.yml
   - name: create container
     command: docker run -d -p 8080:8080 --name docker-container jigreg/mytomcat:v1.0
 ```
+
+### eks-server 설치
+
+- 사용자 데이터
+
+```
+#!/bin/bash
+timedatectl set-timezone Asia/Seoul
+hostnamectl set-hostname eks-server
+cd /tmp
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+./aws/install
+curl -o kubectl https://amazon-eks.s3-us-west-2.amazonaws.com/1.21.2/2021-07-05/bin/linux/amd64/kubectl
+chmod +x ./kubectl
+mv ./kubectl /usr/local/bin
+echo "source <(kubectl completion bash)" >> /home/ec2-user/.bashrc
+curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+mv /tmp/eksctl /usr/local/bin
+```
+
+```
+# sudo passwd ec2-user
+# sudo vi /etc/ssh/sshd_config
+  PasswordAuthentication yes
+  #PermitEmptyPasswords no
+  #PasswordAuthentication no
+# sudo systemctl restart sshd
+```
+
+```
+# sudo vi /etc/ansible/hosts
+[eks-server]
+10.26.35.165
+
+[docker-host]
+10.26.37.49
+
+[ansible-server]
+10.26.33.241
+```
+
+```
+# ssh-copy-id 10.26.35.165
+# ansible all -m ping
+```
+
+### eksctl_role 생성 및 역할 추가
+
+AmazonEC2FullAccess
+IAMFullAccess
+AdministratorAccess
+AWSCloudFormationFullAccess
+
+### cluster cli
+
+```
+# eksctl create cluster --name EKS-CLUSTER --region ap-northeast-2 --version 1.21 --vpc-public-subnets subnet-09cd077d527473704,subnet-022ad22d9150fdb89 --without-nodegroup
+```
+
+- nodegroup
+
+```
+# eksctl create nodegroup \
+  --cluster EKS-CLUSTER \
+  --region ap-northeast-2 \
+  --name NODEGROUP \
+  --node-type t2.micro \
+  --nodes 4 \
+  --nodes-min 4 \
+  --nodes-max 8 \
+  --ssh-access \
+  --ssh-public-key docker-key
+```
+
+- ansible-server
+
+```
+# vi build.yaml
+- hosts: ansible-server
+
+  tasks:
+  - name: remove docker image
+    command: docker rmi -f jigreg/mytomcat:latest
+
+  - name: create docker image
+    command: docker build -t jigreg/mytomcat:latest .
+    args:
+      chdir: /opt/docker
+
+  - name: push docker image
+    command: docker push jigreg/mytomcat:latest
+
+# vi kube-deploy-svc.yml
+- hosts: eks-server
+
+  tasks:
+  - name: remove deploy
+    command: kubectl delete -f /home/ec2-user/test/deployment.yaml
+    ignore_errors: yes
+  - name: kube deploy
+    command: kubectl apply -f /home/ec2-user/test/deployment.yaml
+  - name: kube svc
+    command: kubectl apply -f /home/ec2-user/test/svc.yaml
+  - name: update
+    command: kubectl rollout restart deployment/web-site-deployment
+```
+
+- eks-server
+
+```
+# vi deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-site-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web-site-deployment
+  template:
+    metadata:
+      name: web-site-deployment
+      labels:
+        app: web-site-deployment
+    spec:
+      containers:
+      - name: web-site-deployment-container
+        image: jigreg/mytomcat:latest
+        imagePullPolicy: Always
+
+# vi svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: loadbalancer-service-deployment
+spec:
+  type: LoadBalancer
+  selector:
+    app: web-site-deployment
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 8080
+```
+
+- Jenkins WEB Console Source 추가
+  cd /opt/docker;
+  ansible-playbook build.yml;
+  sleep 10;
+  ansible-playbook kube-deploy-svc.yml
+
+- delete
+
+```
+# kubectl delete all --all
+# eksctl delete cluster EKS-CLUSTER --region ap-northeast-2
+```
