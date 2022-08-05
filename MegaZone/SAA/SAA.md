@@ -20,3 +20,20 @@
 18. 사용자 API -> X RAY
 19. Neptune -> 그래프
 20. Global Accelerator -> 글로벌 사용자 도움되는 네트워크 서비스, 특정 ip 및 고정 ip, 게임, IoT, Cloudfront랑 둘다 쉴드 가능
+21. Amazon Neptune -> Amazon Neptune은 고도로 연결된 데이터 세트와 함께 작동하는 애플리케이션을 쉽게 구축하고 실행할 수 있는 빠르고 안정적인 완전 관리형 그래프 데이터베이스 서비스
+22. Amazon Neptune은 대규모 사용자 프로필 및 상호 작용 세트를 빠르고 쉽게 처리하여 소셜 네트워킹 애플리케이션을 구축할 수 있습니다. Neptune을 사용하면 처리량이 높은 대화형 그래프 쿼리를 통해 소셜 기능을 애플리케이션에 가져올 수 있습니다. 예를 들어, 애플리케이션에 소셜 피드를 구축하는 경우 Neptune을 사용하여 사용자에게 그들의 가족이나 친구들의 업데이트 중 ‘좋아요’를 한 최근 업데이트와 가까이 사는 친구들의 업데이트를 우선적으로 제공할 수 있습니다.
+23. Aurora 
+- 내장 캐시 없으므로 ElasticCache 사용
+- 읽기복제본을 설정하고 적절한 엔드포인트를 사용
+- 장애 조치 우선 순위 지정
+
+24. AWS X-Ray -> 개발자가 마이크로서비스 아키텍처를 사용하여 구축한 것과 같은 프로덕션, 분산 애플리케이션을 분석하고 디버그
+25. AWS OpsWorks - Chef, Puppet
+26. S3 웹 사이트 엔드포인트
+- s3-website 대시(-) 리전 ‐ http://bucket-name.s3-website-Region.amazonaws.com
+- s3-website 점(.) 리전 ‐ http://bucket-name.s3-website.Region.amazonaws.com
+
+27. RDS 확장 모니터링
+- RDS child process
+- RDS processes
+- OS processes
