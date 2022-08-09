@@ -1793,3 +1793,102 @@ spec:
 # kubectl get node
 
 ```
+
+### Kubernetes Prometeous Grafana AutoScaling
+
+```
+kubectl top node
+kubectl top pod
+
+--- metric-server
+# kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.6.1/components.yaml
+# kubectl edit deployments.apps -n kube-system metrics-server
+- --kubelet-insecure-tls
+# kubectl top node
+# kubectl top pod
+
+--- 프로메테우스 설치
+# kubectl create ns monitoring
+
+# git clone https://github.com/hali-linux/my-prometheus-grafana.git
+# kubectl apply -f prometheus-cluster-role.yaml
+# kubectl apply -f prometheus-config-map.yaml
+# kubectl apply -f prometheus-deployment.yaml
+# kubectl apply -f prometheus-node-exporter.yaml
+# kubectl apply -f prometheus-svc.yaml
+# kubectl apply -f kube-state-cluster-role.yaml
+# kubectl apply -f kube-state-deployment.yaml
+# kubectl apply -f kube-state-svcaccount.yaml
+# kubectl apply -f kube-state-svc.yaml
+# kubectl get pod -n monitoring
+
+--- 그라파나 설치
+# kubectl apply -f grafana.yaml
+# kubectl get pod -n monitoring
+
+https://grafana.com/grafana/dashboards/
+
+--- 오토스케일링 실습(HPA : Horizontal Pod Autoscaler)
+# vi php-apache.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-apache
+spec:
+  selector:
+    matchLabels:
+      run: php-apache
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        run: php-apache
+    spec:
+      containers:
+      - name: php-apache
+        image: k8s.gcr.io/hpa-example
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: 500m
+          requests:
+            cpu: 200m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-apache
+  labels:
+    run: php-apache
+spec:
+  ports:
+  - port: 80
+  selector:
+    run: php-apache
+
+# vi hpa.yaml
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: php-apache
+spec:
+  maxReplicas: 4
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: php-apache
+  targetCPUUtilizationPercentage: 50
+status:
+  currentCPUUtilizationPercentage: 0
+  currentReplicas: 2
+  desiredReplicas: 2
+
+# kubectl apply -f hpa.yaml
+# kubectl get all
+
+# kubectl run -it load-generator --rm --image=busybox:1.28 --restart=Never -- /bin/sh -c "while sleep 0.01; do wget -q -O- http://php-apache; done"
+
+# kubectl get hpa
+```
