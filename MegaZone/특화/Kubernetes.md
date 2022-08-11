@@ -1763,11 +1763,11 @@ spec:
 
 ```
 # yum list --showduplicates kubeadm --disableexcludes=kubernetes
-# yum install -y kubeadm-1.20.15-0 --disableexcludes=kubernetes
+# yum install -y kubeadm-1.22.5-0 --disableexcludes=kubernetes
 # kubeadm version
 # kubeadm upgrade plan
-# kubeadm upgrade apply v1.20.15
-# yum install -y kubelet-1.20.15-0 kubectl-1.20.15-0 --disableexcludes=kubernetes
+# kubeadm upgrade apply v1.22.5
+# yum install -y kubelet-1.22.5-0 kubectl-1.22.5-0 --disableexcludes=kubernetes
 # systemctl daemon-reload
 # systemctl restart kubelet
 ```
@@ -1775,7 +1775,7 @@ spec:
 - worker 노드
 
 ```
-# yum install -y kubeadm-1.20.15-0 --disableexcludes=kubernetes
+# yum install -y kubeadm-1.22.5-0 --disableexcludes=kubernetes
 # kubeadm upgrade node
 
 - Master 노드에서 실행
@@ -1783,7 +1783,7 @@ spec:
 # kubectl drain worker2 --ignore-daemonsets --force
 
 - Worker 노드에서 실행
-# yum install -y kubelet-1.20.15-0 kubectl-1.20.15-0 --disableexcludes=kubernetes
+# yum install -y kubelet-1.22.5-0 kubectl-1.22.5-0 --disableexcludes=kubernetes
 # systemctl daemon-reload
 # systemctl restart kubelet
 

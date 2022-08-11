@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: "ingress-alb"
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /guest
+            pathType: Prefix
+            backend:
+              service:
+                name: svc2-guest
+                port:
+                  number: 9002
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: svc3-admin
+                port:
+                  number: 9003
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: "svc1-web"
+                port:
+                  number: 9001
