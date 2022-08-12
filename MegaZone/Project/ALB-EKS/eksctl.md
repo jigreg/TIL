@@ -1,4 +1,13 @@
 ```
+# helm 설치
+# curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+# chmod 700 get_helm.sh
+# ./get_helm.sh
+# curl -L https://git.io/get_helm.sh | bash -s -- --version v3.8.2
+# eks 설치
+# curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+# sudo mv /tmp/eksctl /usr/local/bin
+# eksctl version
 # eksctl utils associate-iam-oidc-provider \
 --cluster terraform-cluster \
 --approve
