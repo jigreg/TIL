@@ -45,7 +45,7 @@ spec:
     spec:
       containers:
         - name: pod-guest
-          image: gcr.io/google-samples/kubernetes-bootcamp:v1
+          image: jigreg/web-site:v2.0
           ports:
             - containerPort: 8080
 ---
@@ -78,7 +78,7 @@ spec:
     spec:
       containers:
         - name: pod-admin
-          image: k8s.gcr.io/echoserver:1.5
+          image: httpd
           ports:
             - containerPort: 8080
 ---
