@@ -26,6 +26,18 @@ resource "aws_iam_role" "eks-iam-role" {
 EOF
 
 }
+
+data "aws_subnet" "apne2_az1" {
+  tags = {
+    Name = "FINAL-PRIVATE-SUBNET-2A"
+  }
+}
+data "aws_subnet" "apne2_az3" {
+  tags = {
+    Name = "FINAL-PRIVATE-SUBNET-2C"
+  }
+}
+
 resource "aws_iam_role_policy_attachment" "AmazonEKSClusterPolicy" {
  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
  role    = aws_iam_role.eks-iam-role.name
@@ -39,8 +51,8 @@ resource "aws_eks_cluster" "terraform-eks" {
  name = "terraform-cluster"
  role_arn = aws_iam_role.eks-iam-role.arn
 
- vpc_config {
-  subnet_ids = [var.subnet_id_1, var.subnet_id_2]
+ vpc_config { 
+  subnet_ids = [data.aws_subnet.apne2_az1.id, data.aws_subnet.apne2_az3.id]
  }
 depends_on = [
   aws_iam_role.eks-iam-role,
@@ -84,7 +96,7 @@ resource "aws_iam_role" "workernodes" {
   cluster_name  = aws_eks_cluster.terraform-eks.name
   node_group_name = "terraform-workernodes"
   node_role_arn  = aws_iam_role.workernodes.arn
-  subnet_ids   = [var.subnet_id_1, var.subnet_id_2]
+  subnet_ids   = [data.aws_subnet.apne2_az1.id, data.aws_subnet.apne2_az3.id]
   instance_types = ["t2.micro"]
 
   scaling_config {
