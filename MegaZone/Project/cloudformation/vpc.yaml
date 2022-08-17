@@ -70,6 +70,8 @@ Resources:
       Tags:
         - Key: Name
           Value: FINAL-PUBLIC-SUBNET-RTB
+        - Key: kubernetes.io/role/elb
+          Value: 1
 
   # b) Associate the public route table with the Internet Gateway
   myPublicRoute:
@@ -91,6 +93,8 @@ Resources:
       Tags:
         - Key: Name
           Value: FINAL-PUBLIC-SUBNET-2A
+        - Key: kubernetes.io/role/elb
+          Value: 1
 
   # Create a public subnet in AZ 2 (will be public once it is associated with public route table)
   myPublicSubnet2:
@@ -103,6 +107,8 @@ Resources:
       Tags:
         - Key: Name
           Value: FINAL-PUBLIC-SUBNET-2C
+        - Key: kubernetes.io/role/elb
+          Value: 1
 
   # d) Associate the public route table with the public subnet in AZ 1
   myPublicSubnet1RouteTableAssociation:
@@ -167,6 +173,8 @@ Resources:
       Tags:
         - Key: Name
           Value: FINAL-PRIVATE-RTB-2A
+        - Key: kubernetes.io/role/internal-elb
+          Value: 1
 
   # Create a private route table for AZ 2
   myPrivateRouteTable2:
@@ -176,6 +184,8 @@ Resources:
       Tags:
         - Key: Name
           Value: FINAL-PRIVATE-RTB-2C
+        - Key: kubernetes.io/role/internal-elb
+          Value: 1
 
   # d) Associate the private route table with the Nat Gateway in AZ 1
   myPrivateRouteForAz1:
@@ -206,6 +216,8 @@ Resources:
       Tags:
         - Key: Name
           Value: FINAL-PRIVATE-SUBNET-2A
+        - Key: kubernetes.io/role/internal-elb
+          Value: 1
 
   # Create a private subnet in AZ 2
   myPrivateSubnet2:
@@ -218,6 +230,8 @@ Resources:
       Tags:
         - Key: Name
           Value: FINAL-PRIVATE-SUBNET-2C
+        - Key: kubernetes.io/role/internal-elb
+          Value: 1
 
   # f) Associate the private route table with the private subnet in AZ 1
   myPrivateSubnet1RouteTableAssociation:
