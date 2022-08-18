@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: pod-web
-          image: registry.gitlab.com/ywon5355/test-project:latest
+          image: registry.gitlab.com/ywon5355/test-project:v1.0
 ---
 apiVersion: v1
 kind: Service

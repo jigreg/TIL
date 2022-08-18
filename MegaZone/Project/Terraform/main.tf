@@ -47,7 +47,7 @@ resource "aws_iam_role_policy_attachment" "AmazonEC2ContainerRegistryReadOnly-EK
  role    = aws_iam_role.eks-iam-role.name
 }
 resource "aws_eks_cluster" "terraform-eks" {
- version = "1.19"
+ version = "1.21"
  name = "terraform-cluster"
  role_arn = aws_iam_role.eks-iam-role.arn
 
