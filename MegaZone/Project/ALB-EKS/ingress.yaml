@@ -14,14 +14,14 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: svc2-guest
+                name: "svc2-guest"
                 port:
                   number: 9002
           - path: /admin
             pathType: Prefix
             backend:
               service:
-                name: svc3-admin
+                name: "svc3-admin"
                 port:
                   number: 9003
           - path: /
