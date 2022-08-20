@@ -1,92 +1,92 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: deploy1-websrv
+  name: deploy1-webmain
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: websrv
+      app: webmain
   template:
     metadata:
       labels:
-        app: websrv
+        app: webmain
     spec:
       containers:
-        - name: pod-web
+        - name: pod-webmain
           image: registry.gitlab.com/ywon5355/test-project:v1.0
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: svc1-web
+  name: svc1-webmain
 spec:
   ports:
-    - name: web-port
+    - name: webmain-port
       port: 9001
       targetPort: 80
   selector:
-    app: websrv
+    app: webmain
   type: NodePort
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: deploy2-guestsrv
+  name: deploy2-webevent
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: guestsrv
+      app: webevent
   template:
     metadata:
       labels:
-        app: guestsrv
+        app: webevent
     spec:
       containers:
-        - name: pod-guest
-          image: jigreg/web-site:v2.0
+        - name: pod-webevent
+          image: seozzang3/events:v2.0
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: svc2-guest
+  name: svc2-webevent
 spec:
   ports:
-    - name: guest-port
+    - name: webevent-port
       port: 9002
       targetPort: 80
   selector:
-    app: guestsrv
+    app: webevent
   type: NodePort
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: deploy3-adminsrv
+  name: deploy3-webschedule
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: adminsrv
+      app: webschedule
   template:
     metadata:
       labels:
-        app: adminsrv
+        app: webschedule
     spec:
       containers:
-        - name: pod-admin
+        - name: pod-webschedule
           image: httpd
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: svc3-admin
+  name: svc3-webschedule
 spec:
   ports:
-    - name: admin-port
+    - name: webschedule-port
       port: 9003
       targetPort: 80
   selector:
-    app: adminsrv
+    app: webschedule
   type: NodePort

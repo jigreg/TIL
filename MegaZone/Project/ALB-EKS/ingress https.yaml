@@ -10,29 +10,30 @@ metadata:
     alb.ingress.kubernetes.io/actions.redirect-to-https: >
       {"Type":"redirect","RedirectConfig":{"Port":"443","Protocol":"HTTPS","StatusCode":"HTTP_302"}}
     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-northeast-2:941161943134:certificate/a03fd6e3-f11c-4a4a-b337-f968c82033d5
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
 
 spec:
   rules:
     - http:
         paths:
-          - path: /guest
+          - path: /event
             pathType: Prefix
             backend:
               service:
-                name: svc2-guest
+                name: "svc2-webevent"
                 port:
                   number: 9002
-          - path: /admin
+          - path: /schedule
             pathType: Prefix
             backend:
               service:
-                name: svc3-admin
+                name: "svc3-webschedule"
                 port:
                   number: 9003
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: "svc1-web"
+                name: "svc1-webmain"
                 port:
                   number: 9001
