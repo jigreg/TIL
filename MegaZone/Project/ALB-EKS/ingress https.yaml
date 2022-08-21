@@ -16,20 +16,6 @@ spec:
   rules:
     - http:
         paths:
-          - path: /event
-            pathType: Prefix
-            backend:
-              service:
-                name: "svc2-webevent"
-                port:
-                  number: 9002
-          - path: /schedule
-            pathType: Prefix
-            backend:
-              service:
-                name: "svc3-webschedule"
-                port:
-                  number: 9003
           - path: /
             pathType: Prefix
             backend:
@@ -37,3 +23,31 @@ spec:
                 name: "svc1-webmain"
                 port:
                   number: 9001
+          - path: /about
+            pathType: Prefix
+            backend:
+              service:
+                name: "svc2-webabout"
+                port:
+                  number: 9002
+          - path: /event
+            pathType: Prefix
+            backend:
+              service:
+                name: "svc3-webevent"
+                port:
+                  number: 9003
+          - path: /schedule
+            pathType: Prefix
+            backend:
+              service:
+                name: "svc4-webschedule"
+                port:
+                  number: 9004
+          - path: /speakers
+            pathType: Prefix
+            backend:
+              service:
+                name: "svc5-webspeakers"
+                port:
+                  number: 9005
