@@ -319,18 +319,20 @@ vi appspec.yml
 version: 0.0
 os: linux
 files:
-
 - source: /index.html
   destination: /var/www/html/
-  hooks:
-  BeforeInstall: - location: scripts/install_dependencies
-  timeout: 300
-  runas: root - location: scripts/start_server
-  timeout: 300
-  runas: root
-  ApplicationStop: - location: scripts/stop_server
-  timeout: 300
-  runas: root
+hooks:
+ BeforeInstall:
+ - location: scripts/install_dependencies
+   timeout: 300
+   runas: root
+ - location: scripts/start_server
+   timeout: 300
+   runas: root
+ ApplicationStop:
+ - location: scripts/stop_server
+   timeout: 300
+   runas: root
 ```
 
 ```
@@ -358,7 +360,7 @@ fi
 
 ```
 zip -r codedeploy-sample.zip \*
-aws s3 cp codedeploy-sample.zip s3://johnlee0405
+aws s3 cp codedeploy-sample.zip s3://s3.seojun.shop
 ```
 
 4. CodeDeploy 구성 및 EC2 Auto Scaling 소스 배포
@@ -374,7 +376,7 @@ aws s3 cp codedeploy-sample.zip s3://johnlee0405
 ```
 rm -rf codedeploy-sample.zip
 zip -r codedeploy-sample-v2.zip *
-aws s3 cp codedeploy-sample-v2.zip s3://s3.alibaba9.shop
+aws s3 cp codedeploy-sample-v2.zip s3://s3.seojun.shop
 ```
 
 ## CodePipeLine
