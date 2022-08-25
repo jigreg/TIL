@@ -247,6 +247,158 @@ Resources:
       RouteTableId: !Ref myPrivateRouteTable2
       SubnetId: !Ref myPrivateSubnet2
 
+  # 1. IAM Role used by the Lex service to make runtime calls
+  BotRuntimeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lexv2.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: LexRuntimeRolePolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "polly:SynthesizeSpeech"
+                  - "comprehend:DetectSentiment"
+                Resource: "*"
+
+  # 2. Inline bot definition that depends on the IAM role.
+  # The bot definition consists of combining all the child resources into one CFN resource.
+  # This includes Locales, Intents, Slots, and SlotTypes.
+  OrderFoodTemplateBot:
+    DependsOn: BotRuntimeRole
+    Type: AWS::Lex::Bot
+    Properties:
+      Name: "OrderFoodWithCFN"
+      RoleArn: !GetAtt BotRuntimeRole.Arn
+      DataPrivacy:
+        ChildDirected: false
+      IdleSessionTTLInSeconds: 300
+      Description: "How to create a OrderFood bot with CFN"
+      # We provide a setting that allows you to auto build the locales provided.
+      # Locale builds are also kicked off if you attempt to create a bot version
+      # that depends on an unbuilt locale.
+      AutoBuildBotLocales: false
+      BotLocales:
+        - LocaleId: "en_US"
+          Description: "Book a trip bot Locale"
+          NluConfidenceThreshold: 0.40
+          VoiceSettings:
+            VoiceId: "Ivy"
+          SlotTypes:
+            - Name: "FoodMenu"
+              Description: "Slot Type description"
+              SlotTypeValues:
+                - SampleValue:
+                    Value: CheesePizza
+                - SampleValue:
+                    Value: ShrimpSalad
+                - SampleValue:
+                    Value: BeefRamen
+              ValueSelectionSetting:
+                ResolutionStrategy: ORIGINAL_VALUE
+          Intents:
+            - Name: "OrderFood"
+              Description: "Intent to order Food for the conference"
+              SampleUtterances:
+                - Utterance: "order food"
+                - Utterance: "food menu"
+              IntentConfirmationSetting:
+                PromptSpecification:
+                  MessageGroupsList:
+                    - Message:
+                        PlainTextMessage:
+                          Value: "Okay, your {FoodMenu} will be ready for pickup by {PickupTime} on {PickupDate}.  Does this sound okay?"
+                  MaxRetries: 3
+                  AllowInterrupt: false
+                DeclinationResponse:
+                  MessageGroupsList:
+                    - Message:
+                        PlainTextMessage:
+                          Value: "Okay, I will not place your order."
+                  AllowInterrupt: false
+              SlotPriorities:
+                - Priority: 2
+                  SlotName: PickupDate
+                - Priority: 1
+                  SlotName: FoodMenu
+                - Priority: 3
+                  SlotName: PickupTime
+              Slots:
+                - Name: "FoodMenu"
+                  Description: "something"
+                  SlotTypeName: "FoodMenu"
+                  ValueElicitationSetting:
+                    SlotConstraint: "Required"
+                    PromptSpecification:
+                      MessageGroupsList:
+                        - Message:
+                            PlainTextMessage:
+                              Value: "Which food would you like to order?"
+                      MaxRetries: 3
+                      AllowInterrupt: false
+                - Name: "PickupDate"
+                  Description: "something"
+                  SlotTypeName: "AMAZON.Date"
+                  ValueElicitationSetting:
+                    SlotConstraint: "Required"
+                    PromptSpecification:
+                      MessageGroupsList:
+                        - Message:
+                            PlainTextMessage:
+                              Value: "What day do you want the {FoodMenu} for your meal at the conference?"
+                      MaxRetries: 3
+                      AllowInterrupt: false
+                - Name: "PickupTime"
+                  Description: "something"
+                  SlotTypeName: "AMAZON.Time"
+                  ValueElicitationSetting:
+                    SlotConstraint: "Required"
+                    PromptSpecification:
+                      MessageGroupsList:
+                        - Message:
+                            PlainTextMessage:
+                              Value: "At what time do you want the {FoodMenu} at the conference?"
+                      MaxRetries: 3
+                      AllowInterrupt: false
+            - Name: "FallbackIntent"
+              Description: "Default intent when no other intent matches"
+              ParentIntentSignature: "AMAZON.FallbackIntent"
+
+  # 3. Define a bot version that depends on the DRAFT version of the Lex Bot.
+  OrderFoodTemplateBotVersionWithCFN:
+    DependsOn: OrderFoodTemplateBot
+    Type: AWS::Lex::BotVersion
+    Properties:
+      BotId: !Ref OrderFoodTemplateBot
+      BotVersionLocaleSpecification:
+        - LocaleId: en_US
+          BotVersionLocaleDetails:
+            SourceBotVersion: DRAFT
+      Description: OrderFood Version
+
+  # 4. Define the alias by providing the bot version created by the
+  #    AWS::Lex::BotVersion resource above.
+  FirstBotAliasWithCFN:
+    DependsOn: OrderFoodTemplateBotVersionWithCFN
+    Type: AWS::Lex::BotAlias
+    Properties:
+      BotId: !Ref OrderFoodTemplateBot
+      BotAliasName: "OrderFoodVersion1Alias"
+      BotVersion: !GetAtt OrderFoodTemplateBotVersionWithCFN.BotVersion
+      SentimentAnalysisSettings:
+        DetectSentiment: true
+
 ## =================== OUTPUTS =================== #
 Outputs:
   outputVPC:
