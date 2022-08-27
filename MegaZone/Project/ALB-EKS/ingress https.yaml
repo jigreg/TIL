@@ -9,7 +9,7 @@ metadata:
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
     alb.ingress.kubernetes.io/actions.redirect-to-https: >
       {"Type":"redirect","RedirectConfig":{"Port":"443","Protocol":"HTTPS","StatusCode":"HTTP_302"}}
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-northeast-2:986356328007:certificate/36281300-34ab-4e06-94db-bd5a346987ac
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-northeast-2:986356328007:certificate/2d4eb8e5-013f-4efa-84b1-4fe1f3dd90d4
     alb.ingress.kubernetes.io/ssl-redirect: "443"
 
 spec:
@@ -23,11 +23,11 @@ spec:
                 name: "svc1-webmain"
                 port:
                   number: 9001
-          - path: /about
+          - path: /contact
             pathType: Prefix
             backend:
               service:
-                name: "svc2-webabout"
+                name: "svc2-webcontact"
                 port:
                   number: 9002
           - path: /event
@@ -37,17 +37,3 @@ spec:
                 name: "svc3-webevent"
                 port:
                   number: 9003
-          - path: /schedule
-            pathType: Prefix
-            backend:
-              service:
-                name: "svc4-webschedule"
-                port:
-                  number: 9004
-          - path: /speakers
-            pathType: Prefix
-            backend:
-              service:
-                name: "svc5-webspeakers"
-                port:
-                  number: 9005

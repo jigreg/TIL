@@ -398,7 +398,6 @@ Resources:
       BotVersion: !GetAtt OrderFoodTemplateBotVersionWithCFN.BotVersion
       SentimentAnalysisSettings:
         DetectSentiment: true
-
 ## =================== OUTPUTS =================== #
 Outputs:
   outputVPC:
