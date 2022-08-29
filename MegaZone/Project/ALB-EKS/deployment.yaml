@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: pod-webmain
-          image: seozzang3/home:v1.0
+          image: seozzang3/home:v2.0
 ---
 apiVersion: v1
 kind: Service
@@ -32,32 +32,32 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: deploy2-webabout
+  name: deploy2-webcontact
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: webabout
+      app: webcontact
   template:
     metadata:
       labels:
-        app: webabout
+        app: webcontact
     spec:
       containers:
-        - name: pod-webabout
-          image: seozzang3/about:v1.0
+        - name: pod-webcontact
+          image: seozzang3/contact:v2.0
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: svc2-webabout
+  name: svc2-webcontact
 spec:
   ports:
-    - name: webabout-port
+    - name: webcontact-port
       port: 9002
       targetPort: 80
   selector:
-    app: webabout
+    app: webcontact
   type: NodePort
 ---
 apiVersion: apps/v1
@@ -76,7 +76,7 @@ spec:
     spec:
       containers:
         - name: pod-webevent
-          image: seozzang3/event:v1.0
+          image: seozzang3/event:v2.0
 ---
 apiVersion: v1
 kind: Service
@@ -90,65 +90,34 @@ spec:
   selector:
     app: webevent
   type: NodePort
----
+  ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: deploy4-webschedule
+  name: deploy4-nodebackend
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: webschedule
+      app: nodebackend
   template:
     metadata:
       labels:
-        app: webschedule
+        app: nodebackend
     spec:
       containers:
-        - name: pod-webschedule
-          image: seozzang3/schedule:v1.0
+        - name: pod-nodebackend
+          image: seozzang3/node:v7.0
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: svc4-webschedule
+  name: svc4-nodebackend
 spec:
   ports:
-    - name: webschedule-port
-      port: 9004
+    - name: webevent-port
+      port: 9003
       targetPort: 80
   selector:
-    app: webschedule
-  type: NodePort
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: deploy5-webspeakers
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: webspeakers
-  template:
-    metadata:
-      labels:
-        app: webspeakers
-    spec:
-      containers:
-        - name: pod-webspeakers
-          image: seozzang3/speakers:v1.0
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: svc5-webspeakers
-spec:
-  ports:
-    - name: webspeakers-port
-      port: 9005
-      targetPort: 80
-  selector:
-    app: webspeakers
+    app: webevent
   type: NodePort
