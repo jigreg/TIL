@@ -90,34 +90,35 @@ spec:
   selector:
     app: webevent
   type: NodePort
-  ---
+ ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: deploy4-nodebackend
+  name: backend-server
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: nodebackend
+      app: backend-server
   template:
     metadata:
       labels:
-        app: nodebackend
+        app: backend-server
     spec:
       containers:
-        - name: pod-nodebackend
-          image: seozzang3/node:v7.0
+        - name: pod-backend-server
+          image: seozzang3/node:v1.1
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: svc4-nodebackend
+  name: backend
 spec:
-  ports:
-    - name: webevent-port
-      port: 9003
-      targetPort: 80
+  type: LoadBalancer
   selector:
-    app: webevent
-  type: NodePort
+    app: backend-server
+  ports:
+  - protocol: TCP
+    port: 4000
+    targetPort: 4000
