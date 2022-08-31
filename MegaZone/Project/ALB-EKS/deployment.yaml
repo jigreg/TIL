@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: pod-webmain
-          image: seozzang3/home:v2.0
+          image: registry.gitlab.com/ywon5355/test-project/main:v1.0
 ---
 apiVersion: v1
 kind: Service
@@ -45,7 +45,7 @@ spec:
     spec:
       containers:
         - name: pod-webcontact
-          image: seozzang3/contact:v2.0
+          image: seozzang3/contact:v2.3
 ---
 apiVersion: v1
 kind: Service
@@ -76,7 +76,7 @@ spec:
     spec:
       containers:
         - name: pod-webevent
-          image: seozzang3/event:v2.0
+          image: registry.gitlab.com/ywon5355/test-project/event:v1.0
 ---
 apiVersion: v1
 kind: Service
@@ -90,7 +90,7 @@ spec:
   selector:
     app: webevent
   type: NodePort
- ---
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -107,7 +107,7 @@ spec:
     spec:
       containers:
         - name: pod-backend-server
-          image: seozzang3/node:v1.1
+          image: seozzang3/node:v3.3
 
 ---
 apiVersion: v1
@@ -119,6 +119,6 @@ spec:
   selector:
     app: backend-server
   ports:
-  - protocol: TCP
-    port: 4000
-    targetPort: 4000
+    - protocol: TCP
+      port: 443
+      targetPort: 4000

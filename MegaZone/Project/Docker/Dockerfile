@@ -1,19 +1,20 @@
-FROM nginx:latest as main
+FROM nginx:latest AS main
 ADD main.tar /usr/share/nginx/html
 CMD ["nginx", "-g", "daemon off;"]
 
-FROM nginx:latest as event
+FROM nginx:latest AS event
 ADD event.tar /usr/share/nginx/html
 CMD ["nginx", "-g", "daemon off;"]
 
-FROM nginx:latest as contact
+FROM nginx:latest AS contact
 ADD contact.tar /usr/share/nginx/html
 CMD ["nginx", "-g", "daemon off;"]
 
-FROM node:slim as contactback
-ENV NODE_ENV=production
+FROM node:10.24.1 AS node
+RUN mkdir -p /app
 WORKDIR /app
-COPY ["package.json", "package-lock.json*", "./"]
-RUN npm install --production
-COPY . .
-CMD [ "node", "server.js" ]
+COPY ./node/package*.json /app/
+RUN npm install
+COPY ./node/index.js /app/
+EXPOSE 4000
+CMD [ "node", "index.js" ]
