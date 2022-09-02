@@ -267,6 +267,14 @@ Resources:
           FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0
+    rds-sg egress:
+    Type: AWS::EC2::SecurityGroupEgress
+    DependsOn: rds-sg
+    SecurityGroupIngress:
+      - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
 
   # 1. IAM Role used by the Lex service to make runtime calls
   BotRuntimeRole:
