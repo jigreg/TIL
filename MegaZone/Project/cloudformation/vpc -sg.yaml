@@ -247,34 +247,44 @@ Resources:
       RouteTableId: !Ref myPrivateRouteTable2
       SubnetId: !Ref myPrivateSubnet2
 
-  rds-sg:
+  rdssg:
     Type: AWS::EC2::SecurityGroup
     DependsOn: myVPC
     Properties:
-      GroupDescription: rds-sg
+      GroupDescription: rds sg
       VpcId:
         Ref: myVPC
-  rds-sg ingress:
+      Tags:
+        - Key: Name
+          Value: RDS-SG
+  InboundRule1:
     Type: AWS::EC2::SecurityGroupIngress
-    DependsOn: rds-sg
-    SecurityGroupIngress:
-      - IpProtocol: tcp
-          FromPort: '3306'
-          ToPort: '65535'
-          SourceSecurityGroupId:
-            Ref: rds-sg
-      - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: 0.0.0.0/0
-    rds-sg egress:
+    DependsOn: rdssg
+    Properties:
+      GroupId:
+        Ref: rdssg
+      IpProtocol: tcp
+      FromPort: "3306"
+      ToPort: "3306"
+      SourceSecurityGroupId: !Ref rdssg
+  InboundRule2:
+    Type: AWS::EC2::SecurityGroupIngress
+    DependsOn: rdssg
+    Properties:
+      GroupId:
+        Ref: rdssg
+      IpProtocol: tcp
+      FromPort: 22
+      ToPort: 22
+      CidrIp: "0.0.0.0/0"
+  OutboundRule:
     Type: AWS::EC2::SecurityGroupEgress
-    DependsOn: rds-sg
-    SecurityGroupIngress:
-      - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: 0.0.0.0/0
+    DependsOn: rdssg
+    Properties:
+      IpProtocol: "-1"
+      CidrIp: "0.0.0.0/0"
+      GroupId:
+        Ref: rdssg
 
   # 1. IAM Role used by the Lex service to make runtime calls
   BotRuntimeRole:
