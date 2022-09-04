@@ -252,8 +252,7 @@ Resources:
     DependsOn: myVPC
     Properties:
       GroupDescription: rds sg
-      VpcId:
-        Ref: myVPC
+      VpcId: !Ref myVPC
       Tags:
         - Key: Name
           Value: RDS-SG
@@ -261,8 +260,7 @@ Resources:
     Type: AWS::EC2::SecurityGroupIngress
     DependsOn: rdssg
     Properties:
-      GroupId:
-        Ref: rdssg
+      GroupId: !Ref rdssg
       IpProtocol: tcp
       FromPort: "3306"
       ToPort: "3306"
@@ -271,8 +269,7 @@ Resources:
     Type: AWS::EC2::SecurityGroupIngress
     DependsOn: rdssg
     Properties:
-      GroupId:
-        Ref: rdssg
+      GroupId: !Ref rdssg
       IpProtocol: tcp
       FromPort: 22
       ToPort: 22
@@ -283,8 +280,7 @@ Resources:
     Properties:
       IpProtocol: "-1"
       CidrIp: "0.0.0.0/0"
-      GroupId:
-        Ref: rdssg
+      GroupId: !Ref rdssg
 
   # 1. IAM Role used by the Lex service to make runtime calls
   BotRuntimeRole:
