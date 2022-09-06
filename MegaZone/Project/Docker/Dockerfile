@@ -6,15 +6,10 @@ FROM nginx:latest AS event
 ADD event.tar /usr/share/nginx/html
 CMD ["nginx", "-g", "daemon off;"]
 
-FROM nginx:latest AS contact
-ADD contact.tar /usr/share/nginx/html
-CMD ["nginx", "-g", "daemon off;"]
-
-FROM node:10.24.1 AS node
-RUN mkdir -p /app
-WORKDIR /app
-COPY ./node/package*.json /app/
-RUN npm install
-COPY ./node/index.js /app/
-EXPOSE 4000
-CMD [ "node", "index.js" ]
+FROM python:3.8.10 AS contact
+WORKDIR /app/
+COPY ./contact/* /app/
+#RUN pip freeze > requirements.txt
+RUN pip install -r /app/requirement.txt
+ENV FLASK_APP=app
+CMD flask run --host 0.0.0.0 -p 80

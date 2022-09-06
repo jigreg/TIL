@@ -1,14 +1,10 @@
 import logging
 import sys
-from flask import Flask, render_template, request, url_for
+from flask import Flask, render_template, request
 from sqlalchemy import create_engine
 
 
-app = Flask(__name__, template_folder="templates", static_folder="/contact/static")
-
-# @app.route('/contact', methods=["GET"])
-# def contact():
-#     return render_template('index.html')
+app = Flask(__name__, template_folder="templates")
 
 @app.route("/contact", methods=["GET", "POST"])
 def contact():
@@ -24,6 +20,7 @@ def contact():
         DB_NAME = 'conference'
         engine = create_engine(f'mysql+pymysql://{DB_USER}:{DB_PW}@{DB_ADDR}:{DB_PORT}/{DB_NAME}')
         conn = engine.connect()
+        conn.execute("CREATE TABLE IF NOT EXISTS conference(id int NOT NULL AUTO_INCREMENT, message varchar(255), name varchar(30), email varchar(255), subject varchar(100) , PRIMARY KEY(id));")
         conn.execute(f"INSERT INTO conference(message,name,email,subject) VALUES('{message}','{name}','{email}','{subject}')")
         conn.close()
         return render_template("index.html")
