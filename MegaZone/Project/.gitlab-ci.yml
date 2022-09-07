@@ -1,0 +1,236 @@
+stages:
+  - build
+  - prepare
+  - plan
+  - deploy
+  - destroy
+
+variables:
+  STACK_NAME: cloudformation
+  REGION: ap-northeast-2
+  PLAN: plan.tfplan
+
+build container image:
+  stage: build
+  image: docker
+  services:
+    - docker:dind
+  before_script:
+    - tar cvf main.tar assets Doc about.html blog.html error.html index.html schedule.html speakers.html ticket.html video.html
+    - tar cvf event.tar ./event
+    - tar cvf contact.tar ./contact
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    - docker build -t $CI_REGISTRY/main:v1.0 --target main .
+    - docker build -t $CI_REGISTRY/event:v1.0 --target event .
+    - docker build -t $CI_REGISTRY/contact:v1.0 --target contact .
+    - docker push  $CI_REGISTRY/main:v1.0
+    - docker push  $CI_REGISTRY/event:v1.0
+    - docker push  $CI_REGISTRY/contact:v1.0
+  except:
+    - update
+
+build update image:
+  stage: build
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "update"'
+  image: docker
+  services:
+    - docker:dind
+  before_script:
+    - tar cvf main.tar assets Doc about.html blog.html error.html index.html schedule.html speakers.html ticket.html video.html
+    - tar cvf event.tar ./event
+    - tar cvf contact.tar ./contact
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    - docker build -t $CI_REGISTRY/main:v2.0 --target main .
+    - docker build -t $CI_REGISTRY/event:v2.0 --target event .
+    - docker build -t $CI_REGISTRY/contact:v2.0 --target contact .
+    - docker push  $CI_REGISTRY/main:v2.0
+    - docker push  $CI_REGISTRY/event:v2.0
+    - docker push  $CI_REGISTRY/contact:v2.0
+
+validate & create cloudformation:
+  stage: prepare
+  needs: ["build container image"]
+  image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
+  script:
+    - echo "Validating template for ${STACK_NAME}"
+    - aws cloudformation validate-template --template-body file://./${STACK_NAME}.yaml
+    - echo "Cloudformation Validate Success"
+    - if ! aws cloudformation describe-stacks --stack-name ${STACK_NAME}; then aws cloudformation create-stack --stack-name ${STACK_NAME} --template-body file://./${STACK_NAME}.yaml --capabilities CAPABILITY_NAMED_IAM && sleep 200; else echo "PASS"; fi
+  except:
+    - update
+
+plan & apply terraform:
+  stage: plan
+  needs: ["validate & create cloudformation"]
+  image:
+    name: hashicorp/terraform:light
+    entrypoint:
+      - "/usr/bin/env"
+      - "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      - "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}"
+      - "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
+      - "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}"
+  cache:
+    paths:
+      - .terraform
+  before_script:
+    - terraform --version
+    - terraform init
+  script:
+    - terraform validate
+    - echo "Terraform validate Success"
+    - terraform plan -out=$PLAN
+    - echo "Terraform plan Success"
+    - terraform apply -input=false $PLAN
+  allow_failure: true
+  except:
+    - update
+
+Deploy Grafana on EKS:
+  needs: [plan & apply terraform]
+  image: matshareyourscript/aws-helm-kubectl
+  stage: deploy
+  before_script:
+    - export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+    - export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    - export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+  script:
+    - aws eks --region ${AWS_DEFAULT_REGION} update-kubeconfig --name ${CLUSTER_NAME}
+    - kubectl create ns monitoring
+    - git clone ${GRAFANA}
+    - cd prometheus-grafana/
+    - kubectl apply -k ./
+    - kubectl get all -n monitoring
+  except:
+    - update
+
+Deploy ALB on EKS:
+  needs: [plan & apply terraform]
+  image: matshareyourscript/aws-helm-kubectl
+  stage: deploy
+  before_script:
+    - export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+    - export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    - export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+    - export ALB_ARN=${ALB_ARN}
+  script:
+    - aws eks --region ${AWS_DEFAULT_REGION} update-kubeconfig --name ${CLUSTER_NAME}
+    - kubectl get svc
+    - curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+    - mv /tmp/eksctl /usr/local/bin
+    - eksctl utils associate-iam-oidc-provider --cluster ${CLUSTER_NAME} --approve
+    - curl -o iam-policy.json https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.4.3/docs/install/iam_policy.json
+    - aws iam create-policy --policy-name AWSLoadBalancerControllerIAMPolicy --policy-document file://iam-policy.json
+    - eksctl create iamserviceaccount --cluster=${CLUSTER_NAME} --namespace=kube-system --name=aws-load-balancer-controller --attach-policy-arn=${ALB_ARN} --override-existing-serviceaccounts --approve
+    - aws iam attach-role-policy --policy-arn ${ALB_ARN} --role-name eks-node-group-example
+    - helm repo add eks https://aws.github.io/eks-charts
+    - helm repo update
+    - helm install aws-load-balancer-controller eks/aws-load-balancer-controller -n kube-system --set clusterName=${CLUSTER_NAME} --set serviceAccount.create=false --set image.repository=${ALB_IMAGE} --set region=${AWS_DEFAULT_REGION} --set vpcId=$(aws ec2 describe-vpcs --filters Name=tag:Name,Values=FINAL-VPC --query "Vpcs[].VpcId" --output text)
+    - kubectl get deployment -n kube-system aws-load-balancer-controller
+    - kubectl apply -f deployment.yaml
+    - kubectl get all
+    - kubectl apply -f ingress.yaml
+    - kubectl get ingress
+  except:
+    - update
+
+Deploy ALB on Route53:
+  stage: deploy
+  needs: [Deploy ALB on EKS]
+  image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
+  script:
+    - sleep 30
+    - clb=dualstack.$(aws elb describe-load-balancers --query 'LoadBalancerDescriptions[0].DNSName' --output text)
+    - echo $clb
+    - |
+      cat <<EOF >> clb.json
+      {
+        "Comment": "Creating Alias resource record sets in Route 53",
+        "Changes": [
+          {
+            "Action": "CREATE",
+            "ResourceRecordSet": {
+              "Name": "monitor.joinustech.site",
+              "Type": "A",
+              "AliasTarget": {
+                "HostedZoneId": "ZWKZPGTI48KDX",
+                "DNSName": "$clb",
+                "EvaluateTargetHealth": false
+              }
+            }
+          }
+        ]
+      }
+      EOF
+    - aws route53 change-resource-record-sets --hosted-zone-id ${HOSTED_ZONE} --change-batch file://clb.json
+    - alb=dualstack.$(aws elbv2 describe-load-balancers --query 'LoadBalancers[0].DNSName' --output text)
+    - echo $alb
+    - |
+      cat <<EOF >> alb.json
+      {
+        "Comment": "Creating Alias resource record sets in Route 53",
+        "Changes": [
+          {
+            "Action": "CREATE",
+            "ResourceRecordSet": {
+              "Name": "www.joinustech.site",
+              "Type": "A",
+              "AliasTarget": {
+                "HostedZoneId": "ZWKZPGTI48KDX",
+                "DNSName": "$alb",
+                "EvaluateTargetHealth": false
+              }
+            }
+          }
+        ]
+      }
+      EOF
+    - aws route53 change-resource-record-sets --hosted-zone-id ${HOSTED_ZONE} --change-batch file://alb.json
+  except:
+    - update
+
+Update Image on EKS:
+  needs: ["build update image"]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "update"'
+  image: matshareyourscript/aws-helm-kubectl
+  stage: deploy
+  before_script:
+    - export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+    - export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    - export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+  script:
+    - aws eks --region ${AWS_DEFAULT_REGION} update-kubeconfig --name ${CLUSTER_NAME}
+    - kubectl set image deployment/deploy1-webmain registry.gitlab.com/ywon5355/test-project/main:v2.0
+    - kubectl set image deployment/deploy2-webcontact registry.gitlab.com/ywon5355/test-project/contact:v2.0
+    - kubectl set image deployment/deploy3-webevent registry.gitlab.com/ywon5355/test-project/event:v2.0
+
+destroy eks:
+  stage: destroy
+  image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
+  script:
+    - echo "Destroy Start"
+    - aws eks delete-nodegroup --cluster-name ${CLUSTER_NAME} --nodegroup-name terraform-workernodes
+    - sleep 300
+    - aws eks delete-cluster --name ${CLUSTER_NAME}
+    - aws iam detach-role-policy --role-name ${IAM_NODE} --policy-arn ${ALB_ARN}
+    - aws iam detach-role-policy --role-name ${IAM_NODE} --policy-arn ${ARN_AWS}/AmazonEKSWorkerNodePolicy
+    - aws iam detach-role-policy --role-name ${IAM_NODE} --policy-arn ${ARN_AWS}/AmazonEC2ContainerRegistryReadOnly
+    - aws iam detach-role-policy --role-name ${IAM_NODE} --policy-arn ${ARN_AWS}/AmazonEKS_CNI_Policy
+    - aws iam detach-role-policy --role-name ${IAM_NODE} --policy-arn ${ARN_AWS}/EC2InstanceProfileForImageBuilderECRContainerBuilds
+    - aws iam delete-role --role-name ${IAM_NODE}
+    - aws iam detach-role-policy --role-name terraform-eks-iam-role --policy-arn ${ARN_AWS}/AmazonEKSClusterPolicy
+    - aws iam detach-role-policy --role-name terraform-eks-iam-role --policy-arn ${ARN_AWS}/AmazonEC2ContainerRegistryReadOnly
+    - aws iam delete-role --role-name terraform-eks-iam-role
+  when: manual
+
+destroy cloudformation:
+  stage: destroy
+  image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
+  script:
+    - echo "Destroy Start"
+    - aws cloudformation delete-stack --stack-name ${STACK_NAME}
+  when: manual
